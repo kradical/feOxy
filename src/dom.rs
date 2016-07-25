@@ -4,19 +4,35 @@ use std::fmt;
 pub type AttrMap = HashMap<String, String>;
 
 pub struct Node {
-    children: Vec<Node>,
-    node_type: NodeType,
+    pub children: Vec<Node>,
+    node_type: NodeType
+}
+
+impl fmt::Display for Node {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.node_type)
+    }	
 }
 
 enum NodeType {
     Text(String),
     Element(ElementData),
-    Comment(String),
+    Comment(String)
+}
+
+impl fmt::Display for NodeType {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match *self {
+			NodeType::Text(ref s) => write!(f, "{}", s),
+			NodeType::Element(ref e) => write!(f, "{}", e),
+			NodeType::Comment(ref c) => write!(f, "{}", c)
+		}
+	}
 }
 
 struct ElementData {
     tag_name: String,
-    attributes: AttrMap,
+    attributes: AttrMap
 }
 
 impl fmt::Display for ElementData {
