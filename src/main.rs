@@ -27,9 +27,9 @@ fn main() {
         Err(e) => panic!("file: {}\nerror: {}", path.display(), e)
     };
 
-    let mut html_contents = String::new(); 
-    file_reader.read_to_string(&mut html_contents).unwrap();
+    let mut html_input = String::new(); 
+    file_reader.read_to_string(&mut html_input).unwrap();
 
-    parser::parse_html(&html_contents);
-
+    let mut html_parser = parser::Parser::new(html_input);
+    html_parser.parse_node();
 }
