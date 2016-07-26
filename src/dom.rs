@@ -11,7 +11,7 @@ pub struct Node {
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.node_type)
-    }	
+    }
 }
 
 enum NodeType {
@@ -21,13 +21,13 @@ enum NodeType {
 }
 
 impl fmt::Display for NodeType {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		match *self {
-			NodeType::Text(ref s) => write!(f, "{}", s),
-			NodeType::Element(ref e) => write!(f, "{}", e),
-			NodeType::Comment(ref c) => write!(f, "{}", c)
-		}
-	}
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            NodeType::Text(ref s) => write!(f, "{}", s),
+            NodeType::Element(ref e) => write!(f, "{}", e),
+            NodeType::Comment(ref c) => write!(f, "{}", c)
+        }
+    }
 }
 
 struct ElementData {
