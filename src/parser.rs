@@ -13,6 +13,39 @@ impl Parser {
         }
     }
 
+    pub fn parse_node(&mut self) {
+        while self.has_chars() {
+            self.consume_while(char::is_whitespace);
+            
+            if self.has_chars() && self.peek() == '<'{
+                self.consume();
+                if self.has_chars() && self.peek() == '/' {
+                    // is a closing tag
+                } else {
+                    // is an opening tag
+                    let tagname = self.consume_while(|x| x.is_digit(36));
+                    let attributes = self.parse_attributes();
+                    
+                    self.consume_while(char::is_whitespace);
+                    
+                    if self.has_chars() && self.peek() == '>' {
+                        //create dom element
+                        self.consume();
+                    }
+                    print!("{}\n", tagname);
+                }
+            }
+            if self.has_chars() {
+                self.consume();
+            }
+        }
+    }
+
+    // Enforces the string still has characters in it.
+    fn has_chars(&mut self) -> bool {
+        return self.current_content.len() > 0;
+    }
+
     // Won't panic if only called after has_chars is tested.
     fn peek(&mut self) -> char {
         self.current_content[0]
@@ -23,11 +56,7 @@ impl Parser {
         self.current_content.remove(0)
     }
 
-    // Enforces the string still has characters in it.
-    fn has_chars(&mut self) -> bool {
-        return self.current_content.len() > 0;
-    }
-
+    // Won't panic if only called after has_chars is tested.
     fn consume_while<F>(&mut self, condition: F) -> String 
         where F : Fn(char) -> bool {
             let mut result = String::new();
@@ -37,23 +66,11 @@ impl Parser {
             result
     }
 
-    pub fn parse_node(&mut self) {
-        print!("TEST\n");
-        print!("{}\n", self.consume_while(is_not_whitespace));
-        print!("TEST\n\n");
-
-        while self.has_chars() {
-            print!("{}", self.consume());
-        }
-
+    fn parse_attributes(&mut self) -> dom::AttrMap {
+        self.consume_while(|x| x != '>');
+        dom::AttrMap::new()
     }
 }
-
-// Utilities
-fn is_not_whitespace(character: char) -> bool {
-    !character.is_whitespace()
-}
-
 
 // need functions to:
 //-read current char without consuming
