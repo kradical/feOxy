@@ -63,7 +63,7 @@ pub fn comment_node(data: String) -> Node {
     Node { children: Vec::new(), node_type: NodeType::Comment(data) }
 }
 
-pub fn pretty_print(n: Node, indent_size: usize) {
+pub fn pretty_print(n: &Node, indent_size: usize) {
     let indent = (0..indent_size).map(|_| " ").collect::<String>();
 
     match n.node_type {
@@ -72,8 +72,8 @@ pub fn pretty_print(n: Node, indent_size: usize) {
         NodeType::Comment(ref c) => println!("{}<!--{}-->", indent, c),
     }
 
-    for child in n.children {
-        pretty_print(child, indent_size + 2);
+    for child in n.children.iter() {
+        pretty_print(&child, indent_size + 2);
     }
 
     match n.node_type {
