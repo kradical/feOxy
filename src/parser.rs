@@ -25,6 +25,9 @@ impl Parser {
                     // is an opening tag
                     let tagname = self.consume_while(|x| x.is_digit(36));
                     let attributes = self.parse_attributes();
+
+                    let elem = dom::element_node(tagname, attributes, Vec::new());
+                    print!("{}\n", elem);
                     
                     self.consume_while(char::is_whitespace);
                     
@@ -32,7 +35,6 @@ impl Parser {
                         //create dom element
                         self.consume();
                     }
-                    print!("{}\n", tagname);
                 }
             }
             if self.has_chars() {
@@ -67,8 +69,63 @@ impl Parser {
     }
 
     fn parse_attributes(&mut self) -> dom::AttrMap {
-        self.consume_while(|x| x != '>');
-        dom::AttrMap::new()
+        let mut attributes = dom::AttrMap::new();
+
+        while self.has_chars() && self.peek() != '>' {
+            self.consume_while(char::is_whitespace);
+            let name = self.consume_while(is_valid_attr_name);
+            self.consume_while(char::is_whitespace);
+
+            if self.has_chars() {
+                if self.peek() == '=' {
+                    self.consume(); // consume equals sign
+                    let value = self.parse_attr_value();
+                    attributes.insert(name, value);
+                } else if self.peek() == '>' || is_valid_attr_name(self.peek()) {
+                    // new attribute hash with name -> ""
+                    attributes.insert(name, "".to_string());
+                } else {
+                    // invalid attribute name consume until whitespace or end
+                    self.consume_while(|x| !x.is_whitespace() || x != '>');
+                }
+            }
+
+            self.consume_while(char::is_whitespace);
+        }
+
+        attributes
+    }
+
+    fn parse_attr_value(&mut self) -> String {
+        self.consume_while(char::is_whitespace);
+        let result = match self.consume() {
+            c @ '"'| c @ '\'' => self.consume_while(|x| x != c && x != '>'),
+            _ => self.consume_while(is_valid_attr_value)
+        };
+        if self.has_chars() {
+            match self.peek() {
+                '"'|'\'' => { self.consume(); },
+                _ => { }
+            }
+        }
+        result
+    }
+}
+
+fn is_valid_attr_name(character: char) -> bool {
+    // TODO deal with control characters
+    // TODO  U+0020 SPACE, "tab" (U+0009), "LF" (U+000A), "FF" (U+000C), and "CR" (U+000D). instead of ' '
+    match character {
+        ' '|'"'|'\''|'>'|'/'|'=' => false,
+        _ => true
+    }
+}
+
+fn is_valid_attr_value(character: char) -> bool {
+    // TODO no ambiguous ampersand
+    match character {
+        ' '|'"'|'\''|'<'|'>'|'`' => false,
+        _ => true
     }
 }
 

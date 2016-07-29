@@ -22,7 +22,10 @@ enum NodeType {
 
 impl fmt::Display for NodeType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        match *self {
+            NodeType::Text(ref t)|NodeType::Comment(ref t) => write!(f, "{}", t),
+            NodeType::Element(ref e) => write!(f, "{}", e)
+        }
     }
 }
 
