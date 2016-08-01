@@ -19,15 +19,24 @@ impl Parser {
 
         while self.has_chars() {
             self.consume_while(char::is_whitespace);
-            if self.has_chars() && self.peek() == '<' {
-                self.consume();
-                if self.has_chars() && self.peek() == '/' {
-                    break;
-                }
-                nodes.push(self.parse_node())
-            }
             if self.has_chars() {
-                self.consume();
+                if self.peek() == '<' {
+                    self.consume();
+                    if self.peek() == '/' {
+                        self.consume_while(|x| x != '>');
+                        if self.has_chars() {
+                            self.consume();
+                        }
+                        break;
+                    } else if self.peek() == '!' {
+                        self.consume();
+                        nodes.push(self.parse_comment_node());
+                    } else {
+                        nodes.push(self.parse_node());
+                    }
+                } else {
+                    nodes.push(self.parse_text_node());
+                }
             }
         }
         nodes
@@ -41,6 +50,62 @@ impl Parser {
         let mut elem = dom::element_node(tagname, attributes, Vec::new());
         elem.children = self.parse_nodes();
         elem
+    }
+
+    fn parse_text_node(&mut self) -> dom::Node {
+        //TODO deal with control characters and U+0000
+        let mut text_content = String::new();
+
+        while self.has_chars() && self.peek() != '<' {
+            let whitespace = self.consume_while(char::is_whitespace);
+            if whitespace.len() > 0 {
+                text_content.push(' ');
+            }
+            let text_part = self.consume_while(|x| !x.is_whitespace() && x != '<');
+            text_content.push_str(&text_part);
+        }
+        dom::text_node(text_content)
+    }
+
+    fn parse_comment_node(&mut self) -> dom::Node {
+        let mut comment_content = String::new();
+
+        if self.has_chars() && self.peek() == '-' {
+            self.consume();
+            if self.has_chars() && self.peek() == '-' {
+                self.consume();
+                if self.has_chars() && self.peek() == '>' {
+                    // invalid comment format
+                    self.consume();
+                    return dom::comment_node(comment_content);
+                } else if self.has_chars() && self.peek() == '-' {
+                    self.consume();
+                    if self.has_chars() && self.peek() == '>' {
+                        // invalid comment format
+                        self.consume();
+                        return dom::comment_node(comment_content);
+                    } else {
+                        comment_content.push('-');
+                    }
+                }
+                while self.has_chars() {
+                    comment_content.push_str(&self.consume_while(|x| x != '-'));
+                    if self.has_chars() && self.peek() == '-' {
+                        self.consume();
+                        if self.has_chars() && self.peek() == '-' {
+                            self.consume_while(|x| x != '>');
+                            if self.has_chars() {
+                                self.consume();
+                            }
+                            break;
+                        } else {
+                            comment_content.push('-')
+                        }
+                    }
+                }
+            }
+        }
+        dom::comment_node(comment_content)
     }
 
     // Enforces the string still has characters in it.
@@ -133,4 +198,8 @@ fn is_valid_attr_value(character: char) -> bool {
     }
 }
 
-//TODO parse text/comment nodes vs element node
+//TODO 
+//  -check and consume function that takes a condition
+//  -parse text/comment nodes vs element node
+//  -script tags
+//  -parse character references
