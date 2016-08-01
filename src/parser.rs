@@ -167,16 +167,22 @@ impl Parser {
 
     fn parse_attr_value(&mut self) -> String {
         self.consume_while(char::is_whitespace);
-        let result = match self.consume() {
-            c @ '"'| c @ '\'' => self.consume_while(|x| x != c && x != '>'),
+
+        let result = match self.peek() {
+            c @ '"'| c @ '\'' => {
+                self.consume();
+                self.consume_while(|x| x != c && x != '>')
+            },
             _ => self.consume_while(is_valid_attr_value)
         };
+
         if self.has_chars() {
             match self.peek() {
                 '"'|'\'' => { self.consume(); },
                 _ => { }
             }
         }
+
         result
     }
 }
