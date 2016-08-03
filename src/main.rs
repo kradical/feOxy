@@ -1,25 +1,41 @@
-mod dom;
-mod parser;
+//mod dom;
+mod css_rules;
+//mod html_parser;
+mod css_parser;
 
 use std::env;
 use std::fs::File;
 use std::io::{Read, BufReader};
 
 fn main() {
+    // let mut path = env::current_dir().unwrap();
+    // path.push("src/parserTestFiles/ex3.html");
+
+    // let mut file_reader = match File::open(&path) {
+    //     Ok(f) => BufReader::new(f),
+    //     Err(e) => panic!("file: {}\nerror: {}", path.display(), e)
+    // };
+
+    // let mut html_input = String::new(); 
+    // file_reader.read_to_string(&mut html_input).unwrap();
+
+    // let nodes = html_parser::Parser::new(html_input).parse_nodes();
+    
+    // for node in nodes.iter() {
+    //     dom::pretty_print(node, 0);    
+    // }
     let mut path = env::current_dir().unwrap();
-    path.push("src/exampleHtml/ex3.html");
+    path.push("src/parserTestFiles/ex1.css");
 
     let mut file_reader = match File::open(&path) {
         Ok(f) => BufReader::new(f),
         Err(e) => panic!("file: {}\nerror: {}", path.display(), e)
     };
 
-    let mut html_input = String::new(); 
-    file_reader.read_to_string(&mut html_input).unwrap();
+    let mut css_input = String::new(); 
+    file_reader.read_to_string(&mut css_input).unwrap();
 
-    let nodes = parser::Parser::new(html_input).parse_nodes();
+    let stylesheet = css_parser::Parser::new(css_input).parse_stylesheet();
     
-    for node in nodes.iter() {
-        dom::pretty_print(node, 0);    
-    }
+    css_rules::pretty_print(&stylesheet);
 }

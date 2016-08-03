@@ -67,9 +67,9 @@ pub fn pretty_print(n: &Node, indent_size: usize) {
     let indent = (0..indent_size).map(|_| " ").collect::<String>();
 
     match n.node_type {
-        NodeType::Element(ref e) => println!("ELEM NODE: {}{}", indent, e),
-        NodeType::Text(ref t) => println!("TEXT NODE: {}{}", indent, t),
-        NodeType::Comment(ref c) => println!("COMM NODE: {}<!--{}-->", indent, c),
+        NodeType::Element(ref e) => println!("{}{}", indent, e),
+        NodeType::Text(ref t) => println!("{}{}", indent, t),
+        NodeType::Comment(ref c) => println!("{}<!--{}-->", indent, c),
     }
 
     for child in n.children.iter() {
@@ -77,7 +77,7 @@ pub fn pretty_print(n: &Node, indent_size: usize) {
     }
 
     match n.node_type {
-        NodeType::Element(ref e) => println!("CLOSE TAG: {}</{}>", indent, e.tag_name),
+        NodeType::Element(ref e) => println!("{}</{}>", indent, e.tag_name),
         _ => {}
     }
 }
