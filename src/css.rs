@@ -17,21 +17,33 @@ struct Rule {
     styles: Vec<Declaration>
 }
 
-impl fmt::Display for Rule {
+impl fmt::Debug for Rule {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "RULE")
     }
 }
 
-struct Selector {
+pub struct Selector {
     tag_name: Option<String>,
     id: Option<String>,
     class: Vec<String>
 }
 
-struct Declaration {
+impl fmt::Debug for Selector {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "SELECTOR")
+	}
+}
+
+pub struct Declaration {
     name: String,
     value: Value
+}
+
+impl fmt::Debug for Declaration {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "DECLARATION")
+	}
 }
 
 enum Value {
@@ -54,6 +66,6 @@ struct Color {
 pub fn pretty_print(s: &Stylesheet) {
     println!("printing rules");
     for rule in &s.rules {
-        println!("{}", rule);
+        println!("{:?}", rule);
     }
 }

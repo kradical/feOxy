@@ -8,9 +8,9 @@ pub struct Node {
     node_type: NodeType
 }
 
-impl fmt::Display for Node {
+impl fmt::Debug for Node {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.node_type)
+        write!(f, "{:?}", self.node_type)
     }
 }
 
@@ -20,11 +20,11 @@ enum NodeType {
     Comment(String)
 }
 
-impl fmt::Display for NodeType {
+impl fmt::Debug for NodeType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             NodeType::Text(ref t)|NodeType::Comment(ref t) => write!(f, "{}", t),
-            NodeType::Element(ref e) => write!(f, "{}", e)
+            NodeType::Element(ref e) => write!(f, "{:?}", e)
         }
     }
 }
@@ -34,7 +34,7 @@ struct ElementData {
     attributes: AttrMap
 }
 
-impl fmt::Display for ElementData {
+impl fmt::Debug for ElementData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut attributes_string = String::new();
         
@@ -67,7 +67,7 @@ pub fn pretty_print(n: &Node, indent_size: usize) {
     let indent = (0..indent_size).map(|_| " ").collect::<String>();
 
     match n.node_type {
-        NodeType::Element(ref e) => println!("{}{}", indent, e),
+        NodeType::Element(ref e) => println!("{}{:?}", indent, e),
         NodeType::Text(ref t) => println!("{}{}", indent, t),
         NodeType::Comment(ref c) => println!("{}<!--{}-->", indent, c),
     }

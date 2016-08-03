@@ -109,12 +109,12 @@ impl Parser {
     }
 
     // Enforces the string still has characters in it.
-    fn has_chars(&mut self) -> bool {
+    fn has_chars(&self) -> bool {
         return self.current_content.len() > 0;
     }
 
     // Won't panic if only called after has_chars is tested.
-    fn peek(&mut self) -> char {
+    fn peek(&self) -> char {
         self.current_content[0]
     }
 
