@@ -27,10 +27,17 @@ impl Parser {
     }
 
     fn parse_selectors(&mut self) -> Vec<css::Selector> {
-        let selectors = Vec::<css::Selector>::new();
+        let mut selectors = Vec::<css::Selector>::new();
 
         while self.has_chars() && self.peek() != '{' {
-            self.consume();
+            self.consume_while(char::is_whitespace);
+            
+            let sel_string = self.consume_while(|x| x != ',' && x != '{');
+            println!("{}", sel_string);
+            
+            if self.has_chars() && self.peek() == ',' {
+                self.consume();
+            }
         }
 
         if self.has_chars() {
