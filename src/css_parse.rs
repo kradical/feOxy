@@ -1,4 +1,4 @@
-use css;
+use css::{Stylesheet, Selector, Declaration, create_rule, create_selector, create_declaration};
 
 pub struct Parser {
     pub stylesheet: String,
@@ -13,27 +13,30 @@ impl Parser {
         }
     }
 
-    pub fn parse_stylesheet(&mut self) -> css::Stylesheet {
-        let mut stylesheet = css::Stylesheet::new();
+    pub fn parse_stylesheet(&mut self) -> Stylesheet {
+        let mut stylesheet = Stylesheet::new();
 
         while self.has_chars() {
             let selectors = self.parse_selectors();
             let styles = self.parse_declarations();
+            let rule = create_rule(selectors, styles);
 
-            println!("{:?} {:?}", selectors, styles);
+            stylesheet.rules.push(rule);
         }
 
-        css::Stylesheet::new()
+        stylesheet
     }
 
-    fn parse_selectors(&mut self) -> Vec<css::Selector> {
-        let mut selectors = Vec::<css::Selector>::new();
+    fn parse_selectors(&mut self) -> Vec<Selector> {
+        let mut selectors = Vec::<Selector>::new();
 
         while self.has_chars() && self.peek() != '{' {
             self.consume_while(char::is_whitespace);
-            
+            //TODO fix selector parsing to be correct.
             let sel_string = self.consume_while(|x| x != ',' && x != '{');
-            println!("{}", sel_string);
+            let selector = create_selector(sel_string);
+
+            selectors.push(selector);
             
             if self.has_chars() && self.peek() == ',' {
                 self.consume();
@@ -47,11 +50,29 @@ impl Parser {
         selectors
     }
 
-    fn parse_declarations(&mut self) -> Vec<css::Declaration> {
-        let declarations = Vec::<css::Declaration>::new();
+    fn parse_declarations(&mut self) -> Vec<Declaration> {
+        let mut declarations = Vec::<Declaration>::new();
 
         while self.has_chars() && self.peek() != '}' {
-            self.consume();
+            self.consume_while(char::is_whitespace);
+            
+            let property = self.consume_while(|x| x != ':');
+            
+            if self.has_chars() {
+                self.consume();
+            }
+            self.consume_while(char::is_whitespace);
+            
+            //TODO fix for correctness
+            let value = self.consume_while(|x| x != ';' && x != '\n' && x != '}');
+            let declaration = create_declaration(property, value);
+
+            declarations.push(declaration);
+            
+            if self.has_chars() && self.peek() == ';' {
+                self.consume();
+            }
+            self.consume_while(char::is_whitespace);
         }
 
         if self.has_chars() {

@@ -1,7 +1,7 @@
 use std::fmt;
 
 pub struct Stylesheet {
-    rules: Vec<Rule>
+    pub rules: Vec<Rule>
 }
 
 impl Stylesheet {
@@ -12,60 +12,84 @@ impl Stylesheet {
     }
 }
 
-struct Rule {
+impl fmt::Debug for Stylesheet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut rule_result = String::new();
+        for rule in &self.rules {
+            if rule_result.len() > 0 {
+                rule_result.push_str("\n\n");
+            }
+            rule_result.push_str(&format!("{:?}", rule));
+        }
+        write!(f, "{}", rule_result)
+    } 
+}
+
+pub struct Rule {
     selectors: Vec<Selector>,
-    styles: Vec<Declaration>
+    declarations: Vec<Declaration>
 }
 
 impl fmt::Debug for Rule {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "RULE")
+        let mut sel_result = String::new();
+        let mut decl_result = String::new();
+        let tab = "    ";
+
+        for selector in &self.selectors {
+            if sel_result.len() > 0 {
+                sel_result.push_str(", ");
+            }
+            sel_result.push_str(&format!("{:?}", selector));
+        }
+
+        for declaration in &self.declarations {
+            decl_result.push_str(tab);
+            decl_result.push_str(&format!("{:?}", declaration));
+            decl_result.push('\n');
+        }
+
+        write!(f, "{} {{\n{}}}", sel_result, decl_result)
     }
 }
 
 pub struct Selector {
-    tag_name: Option<String>,
-    id: Option<String>,
-    class: Vec<String>
+    sel: String
 }
 
 impl fmt::Debug for Selector {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "SELECTOR")
-	}
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.sel)
+    }
 }
 
 pub struct Declaration {
-    name: String,
-    value: Value
+    property: String,
+    value: String
 }
 
 impl fmt::Debug for Declaration {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "DECLARATION")
-	}
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}: {}", self.property, self.value)
+    }
 }
 
-enum Value {
-    Keyword(String),
-    Length(f32, Unit),
-    ColorValue(Color)
+pub fn create_rule(sel: Vec<Selector>, decl: Vec<Declaration>) -> Rule {
+    Rule {
+        selectors: sel,
+        declarations: decl
+    }
 }
 
-enum Unit {
-    Px
+pub fn create_selector(sel: String) -> Selector {
+    Selector {
+        sel: sel
+    }
 }
 
-struct Color {
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8,
-}
-
-pub fn pretty_print(s: &Stylesheet) {
-    println!("printing rules");
-    for rule in &s.rules {
-        println!("{:?}", rule);
+pub fn create_declaration(prop: String, val: String) -> Declaration {
+    Declaration {
+        property: prop,
+        value: val
     }
 }

@@ -9,6 +9,7 @@ use std::io::{Read, BufReader};
 
 fn main() {
     test_html();
+    println!("");
     test_css();
 }
 
@@ -45,5 +46,5 @@ fn test_css() {
 
     let stylesheet = css_parse::Parser::new(css_input).parse_stylesheet();
     
-    css::pretty_print(&stylesheet);
+    print!("{:?}", stylesheet);
 }
