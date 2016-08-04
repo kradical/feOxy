@@ -1,4 +1,5 @@
-use css::{Stylesheet, Selector, Declaration, create_rule, create_selector, create_declaration};
+use css::{Stylesheet, Selector, SimpleSelector, Declaration, create_rule, 
+    create_declaration};
 
 pub struct Parser {
     pub stylesheet: String,
@@ -31,13 +32,10 @@ impl Parser {
         let mut selectors = Vec::<Selector>::new();
 
         while self.has_chars() && self.peek() != '{' {
-            self.consume_while(char::is_whitespace);
-            //TODO fix selector parsing to be correct.
-            let sel_string = self.consume_while(|x| x != ',' && x != '{');
-            let selector = create_selector(sel_string);
-
+            let selector = self.parse_selector();
             selectors.push(selector);
-            
+
+            self.consume_while(char::is_whitespace);
             if self.has_chars() && self.peek() == ',' {
                 self.consume();
             }
@@ -48,6 +46,55 @@ impl Parser {
         }
 
         selectors
+    }
+
+    fn parse_selector(&mut self) -> Selector {
+        let mut sselector = SimpleSelector::new();
+        let mut selector = Selector::new();
+
+        self.consume_while(char::is_whitespace);
+        
+        if self.has_chars() {
+            sselector.tag_name = match self.peek() {
+                '#'|'.' => None,
+                _ => Some(self.parse_ident())
+            }
+        }
+
+        while self.has_chars() && self.peek() != ',' && self.peek() != '{' && !self.peek().is_whitespace() {
+            match self.peek() {
+                '#' =>  {
+                    self.consume();
+                    sselector.id = self.parse_id()
+                },
+                '.' => {
+                    self.consume();
+                    sselector.classes.push(self.parse_ident())
+                },
+                _ => panic!("SOMEHOW INVALID STATE IN parse_selector")
+            }
+        }
+
+        selector.simple.push(sselector);
+
+        selector
+    }
+
+    fn parse_ident(&mut self) -> String {
+        let mut ident = String::new();
+
+        if self.has_chars() && is_valid_start_ident(self.peek()) {
+            ident.push_str(&self.consume_while(is_valid_ident));
+        }
+
+        ident
+    }
+
+    fn parse_id(&mut self) -> Option<String> {
+        match &self.parse_ident()[..] {
+            "" => None,
+            s @ _ => Some(s.to_string())
+        }
     }
 
     fn parse_declarations(&mut self) -> Vec<Declaration> {
@@ -103,3 +150,29 @@ impl Parser {
             result
         }
 }
+
+fn is_valid_ident(c: char) -> bool {
+    is_valid_start_ident(c) || c.is_digit(10) || c == '-'
+}
+
+fn is_valid_start_ident(c: char) -> bool {
+    is_letter(c) || is_non_ascii(c) || c == '_'
+}
+
+fn is_letter(c: char) -> bool {
+    is_upper_letter(c) || is_lower_letter(c)
+}
+
+fn is_upper_letter(c: char) -> bool {
+    c >= 'A' && c <= 'Z'
+}
+
+fn is_lower_letter(c: char) -> bool {
+    c >= 'a' && c <= 'z'
+}
+
+fn is_non_ascii(c: char) -> bool {
+    c >= '\u{0080}'
+}
+
+//TODO deal with comments and escaping characters

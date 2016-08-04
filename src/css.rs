@@ -54,12 +54,73 @@ impl fmt::Debug for Rule {
 }
 
 pub struct Selector {
-    sel: String
+    pub simple: Vec<SimpleSelector>,
+    pub combinators: Vec<char>
+}
+
+impl Selector {
+    pub fn new() -> Selector {
+        Selector {
+            simple: Vec::new(),
+            combinators: Vec:: new()
+        }
+    }
 }
 
 impl fmt::Debug for Selector {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.sel)
+        let mut result = String::new();
+
+        for sel in &self.simple {
+            if result.len() > 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&format!("{:?}", sel));
+        }
+
+        write!(f, "{}", result)
+    }
+}
+
+pub struct SimpleSelector {
+    pub tag_name: Option<String>,
+    pub id: Option<String>,
+    pub classes: Vec<String>
+}
+
+impl SimpleSelector {
+    pub fn new() -> SimpleSelector {
+        SimpleSelector {
+            tag_name: None,
+            id: None,
+            classes: Vec::new()
+        }
+    }
+}
+
+impl fmt::Debug for SimpleSelector {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut result = String::new();
+        
+        match self.tag_name {
+            Some(ref t) => result.push_str(t),
+            None => {} 
+        }
+
+        match self.id {
+            Some(ref s) => {
+                result.push('#');
+                result.push_str(s);
+            },
+            None => {}
+        }
+
+        for class in &self.classes {
+            result.push('.');
+            result.push_str(class);
+        }
+
+        write!(f, "{}", result)
     }
 }
 
@@ -78,12 +139,6 @@ pub fn create_rule(sel: Vec<Selector>, decl: Vec<Declaration>) -> Rule {
     Rule {
         selectors: sel,
         declarations: decl
-    }
-}
-
-pub fn create_selector(sel: String) -> Selector {
-    Selector {
-        sel: sel
     }
 }
 
