@@ -2,18 +2,26 @@ mod dom;
 mod css;
 mod html_parse;
 mod css_parse;
+mod style;
 
 use std::env;
 use std::fs::File;
 use std::io::{Read, BufReader};
 
 fn main() {
-    test_html();
+    let nodes = test_html();
+    let ref node = nodes[0];
+
     println!("");
     test_css();
+
+    println!("");
+    let style_tree_root = style::StyledNode::new(&node);
+
+    print!("{:?}", style_tree_root);
 }
 
-fn test_html() {
+fn test_html() -> Vec<dom::Node> {
     let mut path = env::current_dir().unwrap();
     path.push("src/parserTestFiles/ex3.html");
 
@@ -30,6 +38,8 @@ fn test_html() {
     for node in nodes.iter() {
         dom::pretty_print(node, 0);    
     }
+
+    nodes
 }
 
 fn test_css() {

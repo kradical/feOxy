@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 pub type AttrMap = HashMap<String, String>;
 
 pub struct Node {
     pub children: Vec<Node>,
-    node_type: NodeType
+    pub node_type: NodeType
 }
 
 impl fmt::Debug for Node {
@@ -14,7 +14,7 @@ impl fmt::Debug for Node {
     }
 }
 
-enum NodeType {
+pub enum NodeType {
     Text(String),
     Element(ElementData),
     Comment(String)
@@ -29,9 +29,22 @@ impl fmt::Debug for NodeType {
     }
 }
 
-struct ElementData {
-    tag_name: String,
+pub struct ElementData {
+    pub tag_name: String,
     attributes: AttrMap
+}
+
+impl ElementData {
+    pub fn get_id(&self) -> Option<&String> {
+        self.attributes.get("id")
+    }
+
+    pub fn get_classes(&self) -> HashSet<&str> {
+        match self.attributes.get("class") {
+            Some(s) => s.split(' ').collect(),
+            None => HashSet::new()
+        }
+    } 
 }
 
 impl fmt::Debug for ElementData {
