@@ -28,8 +28,9 @@ impl<'a> StyledNode<'a> {
         StyledNode {
             node: node,
             styles: match node.node_type {
-                NodeType::Element(e) => , //do the thing
-                _ => PropertyMap::new()            }
+                NodeType::Element(e) => , //TODO
+                _ => PropertyMap::new()
+            }
             children: style_children
         }
     }
