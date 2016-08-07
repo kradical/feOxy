@@ -1,5 +1,5 @@
-use dom::{Node, ElementData, pretty_print, NodeType};
-use css::{Selector};
+use dom::{Node, ElementData, NodeType};
+use css::{Selector, Stylesheet};
 
 use std::collections::HashMap;
 use std::fmt;
@@ -13,14 +13,14 @@ pub struct StyledNode<'a> {
 }
 
 impl<'a> StyledNode<'a> {
-    pub fn new(node: &Node) -> StyledNode {
+    pub fn new(node: &'a Node, ss: &Stylesheet) -> StyledNode<'a> {
         // recursively make a styletree without any styles
         // then apply rules to the tree 
         let mut style_children = Vec::new();
 
         for child in &node.children {
             match child.node_type {
-                NodeType::Element(ref e) => style_children.push(StyledNode::new(&child)),
+                NodeType::Element(ref e) => style_children.push(StyledNode::new(&child, ss)),
                 _ => {}
             }
         }
@@ -28,9 +28,9 @@ impl<'a> StyledNode<'a> {
         StyledNode {
             node: node,
             styles: match node.node_type {
-                NodeType::Element(e) => , //TODO
+                NodeType::Element(ref e) => get_styles(e, ss),
                 _ => PropertyMap::new()
-            }
+            },
             children: style_children
         }
     }
@@ -38,31 +38,81 @@ impl<'a> StyledNode<'a> {
 
 impl<'a> fmt::Debug for StyledNode<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        pretty_print(self.node, 0);
-        write!(f, "styles of {:?}: {:?}", self.node, self.styles)
+        write!(f, "{:?}: {:?}", self.node, self.styles)
     }
 }
 
-pub fn selector_matches(elem: &ElementData, sel: &Selector) -> bool {
-    let mut sel_match = true;
+fn get_styles(elem: &ElementData, ss: &Stylesheet) -> PropertyMap {
+    let mut styles = PropertyMap::new();
 
+    for rule in &ss.rules {
+        for selector in &rule.selectors {
+            if selector_matches(elem, &selector) {
+                for decl in &rule.declarations {
+                    styles.insert(decl.property.clone(), decl.value.clone());
+                }
+                break;
+            }
+        }
+    }
+
+    styles
+}
+
+fn selector_matches(elem: &ElementData, sel: &Selector) -> bool {
     for simple in &sel.simple {
-        sel_match |= match simple.tag_name {
-            Some(ref t) => *t == elem.tag_name,
-            None => true
+        let mut sel_match = true;
+
+        match simple.tag_name {
+            Some(ref t) => {
+                if *t != elem.tag_name {
+                    continue;
+                }
+            },
+            None => {}
         };
 
-        sel_match |= match simple.id {
-            Some(ref i) => i == elem.get_id().unwrap_or(i),
-            None => true
-        };
+        match elem.get_id() {
+            Some(i) => {
+                match simple.id {
+                    Some(ref id) => {
+                        if *i != *id {
+                            continue;
+                        }
+                    },
+                    None => {}
+                }
+            },
+            None => {
+                match simple.id {
+                    Some(_) => { continue; },
+                    _ => {}
+                }
+            }
+        }
 
         let elem_classes = elem.get_classes();
 
         for class in &simple.classes {
-            sel_match |= elem_classes.contains::<str>(class);
+            sel_match &= elem_classes.contains::<str>(class);
+        }
+
+        if sel_match {
+            return true;
         }
     }
 
-    sel_match
+    false
 }
+
+pub fn pretty_print(n: &StyledNode, indent_size: usize) {
+    let indent = (0..indent_size).map(|_| " ").collect::<String>();
+
+    println!("{}{:?}", indent, n);
+
+    for child in n.children.iter() {
+        pretty_print(&child, indent_size + 2);
+    }
+}
+
+//TODO make things case insensitive.

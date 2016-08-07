@@ -26,8 +26,8 @@ impl fmt::Debug for Stylesheet {
 }
 
 pub struct Rule {
-    selectors: Vec<Selector>,
-    declarations: Vec<Declaration>
+    pub selectors: Vec<Selector>,
+    pub declarations: Vec<Declaration>
 }
 
 impl fmt::Debug for Rule {
@@ -125,8 +125,8 @@ impl fmt::Debug for SimpleSelector {
 }
 
 pub struct Declaration {
-    property: String,
-    value: String
+    pub property: String,
+    pub value: String
 }
 
 impl fmt::Debug for Declaration {

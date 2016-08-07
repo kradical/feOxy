@@ -13,12 +13,12 @@ fn main() {
     let ref node = nodes[0];
 
     println!("");
-    test_css();
+    let ss = test_css();
 
     println!("");
-    let style_tree_root = style::StyledNode::new(&node);
+    let style_tree_root = style::StyledNode::new(&node, &ss);
 
-    print!("{:?}", style_tree_root);
+    style::pretty_print(&style_tree_root, 0);
 }
 
 fn test_html() -> Vec<dom::Node> {
@@ -42,7 +42,7 @@ fn test_html() -> Vec<dom::Node> {
     nodes
 }
 
-fn test_css() {
+fn test_css() -> css::Stylesheet {
     let mut path = env::current_dir().unwrap();
     path.push("src/parserTestFiles/ex1.css");
 
@@ -57,4 +57,6 @@ fn test_css() {
     let stylesheet = css_parse::Parser::new(css_input).parse_stylesheet();
     
     print!("{:?}", stylesheet);
+
+    stylesheet
 }
