@@ -175,4 +175,9 @@ fn is_non_ascii(c: char) -> bool {
     c >= '\u{0080}'
 }
 
-//TODO deal with comments and escaping characters
+//TODO 
+//  -deal with comments and escaping characters
+//  -complex selectors
+//  -counter instead of destroy vec elements
+//  -cascade
+//  -specificity

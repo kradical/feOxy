@@ -207,5 +207,6 @@ fn is_valid_attr_value(character: char) -> bool {
 //TODO 
 //  -check and consume function that takes a condition
 //  -parse text/comment nodes vs element node
-//  -script tags
+//  -script tags/link tags
 //  -parse character references
+//  -use a counter instead of destroying an element of the vector each time.

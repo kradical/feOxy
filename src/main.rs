@@ -3,6 +3,7 @@ mod css;
 mod html_parse;
 mod css_parse;
 mod style;
+mod layout;
 
 use std::env;
 use std::fs::File;
@@ -10,15 +11,23 @@ use std::io::{Read, BufReader};
 
 fn main() {
     let nodes = test_html();
+    for node in nodes.iter() {
+        dom::pretty_print(node, 0);    
+    }
     let ref node = nodes[0];
 
     println!("");
     let ss = test_css();
+    print!("{:?}", ss);
 
     println!("");
     let style_tree_root = style::StyledNode::new(&node, &ss);
-
     style::pretty_print(&style_tree_root, 0);
+
+    
+    println!("");
+    let layout_tree = layout::LayoutBox::new(layout::BoxType::Anonymous);
+    print!("{:?}", layout_tree);
 }
 
 fn test_html() -> Vec<dom::Node> {
@@ -34,10 +43,6 @@ fn test_html() -> Vec<dom::Node> {
     file_reader.read_to_string(&mut html_input).unwrap();
 
     let nodes = html_parse::Parser::new(html_input).parse_nodes();
-    
-    for node in nodes.iter() {
-        dom::pretty_print(node, 0);    
-    }
 
     nodes
 }
@@ -55,8 +60,6 @@ fn test_css() -> css::Stylesheet {
     file_reader.read_to_string(&mut css_input).unwrap();
 
     let stylesheet = css_parse::Parser::new(css_input).parse_stylesheet();
-    
-    print!("{:?}", stylesheet);
 
     stylesheet
 }

@@ -34,6 +34,10 @@ impl<'a> StyledNode<'a> {
             children: style_children
         }
     }
+
+    fn value(&self, name: &str) -> Option<&String> {
+        self.styles.get(name)
+    }
 }
 
 impl<'a> fmt::Debug for StyledNode<'a> {
@@ -115,4 +119,9 @@ pub fn pretty_print(n: &StyledNode, indent_size: usize) {
     }
 }
 
-//TODO make things case insensitive.
+//TODO 
+//  -make things case insensitive.
+//  -parse element attributes into styles
+//  -parse <style> elements into style sheets
+//  -computed values
+//  -inheritance
