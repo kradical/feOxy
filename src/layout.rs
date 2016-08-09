@@ -1,4 +1,4 @@
-use style::StyledNode;
+use style::{StyledNode, Display};
 use std::fmt;
 
 #[derive(Default)]
@@ -44,13 +44,13 @@ impl fmt::Debug for EdgeSizes {
     }
 }
 
-pub struct LayoutBox<'a> {
+pub struct LayoutBox {
     dimensions: Dimensions,
-    box_type: BoxType<'a>,
-    children: Vec<LayoutBox<'a>>,
+    box_type: BoxType,
+    children: Vec<LayoutBox>,
 }
 
-impl<'a> LayoutBox<'a> {
+impl LayoutBox {
     pub fn new(box_type: BoxType) -> LayoutBox {
         LayoutBox {
             box_type: box_type,
@@ -58,28 +58,58 @@ impl<'a> LayoutBox<'a> {
             children: Vec::new(),
         }
     }
+
+    fn get_inline(&mut self) -> &mut LayoutBox {
+        match self.box_type {
+            BoxType::Inline | BoxType::Anonymous => self,
+            BoxType::Block => {
+                match self.children.last() {
+                    Some(&LayoutBox { box_type: BoxType::Anonymous, .. }) => {},
+                    _ => self.children.push(LayoutBox::new(BoxType::Anonymous))
+                }
+                self.children.last_mut().unwrap()
+            }
+        }
+    }
 }
 
-impl<'a> fmt::Debug for LayoutBox<'a> {
+impl fmt::Debug for LayoutBox {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "type:\n  {:?}\n{:?}\n", self.box_type, self.dimensions)
     } 
 }
 
-pub enum BoxType<'a> {
-    Block(&'a StyledNode<'a>),
-    Inline(&'a StyledNode<'a>),
+pub enum BoxType {
+    Block,
+    Inline,
     Anonymous,
 }
 
-impl<'a> fmt::Debug for BoxType<'a> {
+impl fmt::Debug for BoxType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let display_type = match *self {
-            BoxType::Block(_) => "block",
-            BoxType::Inline(_) => "inline",
+            BoxType::Block => "block",
+            BoxType::Inline => "inline",
             BoxType::Anonymous => "anonymous"
         };
 
         write!(f, "{}", display_type)
     } 
+}
+
+fn build_layout_tree(node: &StyledNode) -> LayoutBox {
+    let mut rect = LayoutBox::new(match node.get_display() {
+        Display::Block => BoxType::Block,
+        Display::Inline => BoxType::Inline,
+        Display::None => panic!("root node has display: none")
+    });
+
+    for child in &node.children {
+        match child.get_display() {
+            Display::Block => rect.children.push(build_layout_tree(child)),
+            Display::Inline => rect.get_inline().children.push(build_layout_tree(child)),
+            Display::None => {}
+        }
+    }
+    rect
 }

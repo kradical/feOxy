@@ -4,16 +4,16 @@ use css::{Selector, Stylesheet};
 use std::collections::HashMap;
 use std::fmt;
 
-type PropertyMap = HashMap<String, String>;
+type PropertyMap<'a> = HashMap<&'a str, &'a str>;
 
 pub struct StyledNode<'a> {
     node: &'a Node,
-    styles: PropertyMap,
-    children: Vec<StyledNode<'a>>
+    styles: PropertyMap<'a>,
+    pub children: Vec<StyledNode<'a>>
 }
 
 impl<'a> StyledNode<'a> {
-    pub fn new(node: &'a Node, ss: &Stylesheet) -> StyledNode<'a> {
+    pub fn new(node: &'a Node, ss: &'a Stylesheet) -> StyledNode<'a> {
         // recursively make a styletree without any styles
         // then apply rules to the tree 
         let mut style_children = Vec::new();
@@ -28,15 +28,43 @@ impl<'a> StyledNode<'a> {
         StyledNode {
             node: node,
             styles: match node.node_type {
-                NodeType::Element(ref e) => get_styles(e, ss),
+                NodeType::Element(ref e) => StyledNode::get_styles(e, ss),
                 _ => PropertyMap::new()
             },
             children: style_children
         }
     }
 
-    fn value(&self, name: &str) -> Option<&String> {
+    fn value(&self, name: &str) -> Option<&&str> {
         self.styles.get(name)
+    }
+
+    pub fn get_display(&self) -> Display {
+        match self.value("display") {
+            Some(s) => match *s {
+                "block" => Display::Block,
+                "none" => Display::None,
+                _ => Display::Inline
+            },
+            None => Display::Inline
+        }
+    }
+
+    fn get_styles(elem: &'a ElementData, ss: &'a Stylesheet) -> PropertyMap<'a> {
+        let mut styles = PropertyMap::new();
+
+        for rule in &ss.rules {
+            for selector in &rule.selectors {
+                if selector_matches(elem, &selector) {
+                    for decl in &rule.declarations {
+                        styles.insert(&decl.property, &decl.value);
+                    }
+                    break;
+                }
+            }
+        }
+
+        styles
     }
 }
 
@@ -46,21 +74,10 @@ impl<'a> fmt::Debug for StyledNode<'a> {
     }
 }
 
-fn get_styles(elem: &ElementData, ss: &Stylesheet) -> PropertyMap {
-    let mut styles = PropertyMap::new();
-
-    for rule in &ss.rules {
-        for selector in &rule.selectors {
-            if selector_matches(elem, &selector) {
-                for decl in &rule.declarations {
-                    styles.insert(decl.property.clone(), decl.value.clone());
-                }
-                break;
-            }
-        }
-    }
-
-    styles
+pub enum Display {
+    Block,
+    Inline,
+    None
 }
 
 fn selector_matches(elem: &ElementData, sel: &Selector) -> bool {
