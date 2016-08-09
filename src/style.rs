@@ -35,7 +35,7 @@ impl<'a> StyledNode<'a> {
         }
     }
 
-    fn value(&self, name: &str) -> Option<&&str> {
+    pub fn value(&self, name: &str) -> Option<&&str> {
         self.styles.get(name)
     }
 
