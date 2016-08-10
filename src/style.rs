@@ -2,7 +2,7 @@ use dom::{Node, ElementData, NodeType};
 use css::{Selector, Stylesheet};
 
 use std::collections::HashMap;
-use std::fmt;
+use std::{fmt, str};
 
 type PropertyMap<'a> = HashMap<&'a str, &'a str>;
 
@@ -47,6 +47,13 @@ impl<'a> StyledNode<'a> {
                 _ => Display::Inline
             },
             None => Display::Inline
+        }
+    }
+
+    pub fn value_or<T>(&self, name: &str, default: T) -> T where T: str::FromStr {
+        match self.value(name) {
+            Some(v) => v.parse().unwrap_or(default),
+            None => default,
         }
     }
 

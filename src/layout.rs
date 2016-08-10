@@ -89,10 +89,40 @@ impl<'a> LayoutBox<'a> {
 
     fn calculate_width(&mut self, b_box: Dimensions) {
         let style = self.get_style_node();
-        let width = match style.value("width") {
-            Some(v) => v.parse().unwrap_or(0.0),
-            None => 0.0,
-        };
+        let mut width: f32 = style.value_or("width", 0.0);
+        let mut margin_l: f32 = style.value_or("margin-left", 0.0);
+        let mut margin_r: f32 = style.value_or("margin-right", 0.0);
+        let border_l: f32 = style.value_or("border-left-width", 0.0);
+        let border_r: f32 = style.value_or("border-right-width", 0.0);
+        let padding_l: f32 = style.value_or("padding-left", 0.0);
+        let padding_r: f32 = style.value_or("padding-right", 0.0);
+
+        let total = width + margin_l + margin_r + border_l + border_r + padding_l + padding_r;
+
+        let underflow = b_box.content.width - total;
+
+        match (width, margin_l, margin_r) {
+            // width is auto
+            (0.0, _, _) => {
+                if underflow >= 0.0 {
+                    width = underflow;
+                } else {
+                    // width can't be negative
+                    margin_r = margin_r + underflow;
+                }
+            },
+            // left margin is auto
+            (w, 0.0, mr) if w != 0.0 && mr != 0.0 => { margin_l = underflow; },
+            // right margin is auto
+            (w, ml, 0.0) if w != 0.0 && ml != 0.0 => { margin_r = underflow; },
+            // left/right margin are auto
+            (w, 0.0, 0.0) if w != 0.0 => {
+                margin_l = underflow / 2.0;
+                margin_r = underflow / 2.0;
+            },
+            // values are overconstrained, calculate margin_right.
+            (_, _, _) => { margin_r = margin_r + underflow; },
+        }
     }
 
     fn calculate_position(&mut self, b_box: Dimensions) {
