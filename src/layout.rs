@@ -123,10 +123,19 @@ impl<'a> LayoutBox<'a> {
             // values are overconstrained, calculate margin_right.
             (_, _, _) => { margin_r = margin_r + underflow; },
         }
+
+        let d = &mut self.dimensions;
+        d.content.width = width;
+        d.padding.left = padding_l;
+        d.padding.right = padding_r;
+        d.border.left =  border_l;
+        d.border.right = border_r;
+        d.margin.left =  margin_l;
+        d.margin.right = margin_r;
     }
 
     fn calculate_position(&mut self, b_box: Dimensions) {
-        
+        let style = self.get_style_node()
     }
 
     fn calculate_height(&mut self) {
