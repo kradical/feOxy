@@ -89,15 +89,19 @@ impl<'a> LayoutBox<'a> {
 
     fn calculate_width(&mut self, b_box: Dimensions) {
         let style = self.get_style_node();
+        let d = &mut self.dimensions;
+        
         let mut width: f32 = style.value_or("width", 0.0);
         let mut margin_l: f32 = style.value_or("margin-left", 0.0);
         let mut margin_r: f32 = style.value_or("margin-right", 0.0);
-        let border_l: f32 = style.value_or("border-left-width", 0.0);
-        let border_r: f32 = style.value_or("border-right-width", 0.0);
-        let padding_l: f32 = style.value_or("padding-left", 0.0);
-        let padding_r: f32 = style.value_or("padding-right", 0.0);
+        
+        d.border.left = style.value_or("border-left-width", 0.0);
+        d.border.right = style.value_or("border-right-width", 0.0);
+        d.padding.left = style.value_or("padding-left", 0.0);
+        d.padding.right = style.value_or("padding-right", 0.0);
 
-        let total = width + margin_l + margin_r + border_l + border_r + padding_l + padding_r;
+        let total = width + margin_l + margin_r + d.border.left + d.border.right + d.padding.left
+            + d.padding.right;
 
         let underflow = b_box.content.width - total;
 
@@ -124,29 +128,43 @@ impl<'a> LayoutBox<'a> {
             (_, _, _) => { margin_r = margin_r + underflow; },
         }
 
-        let d = &mut self.dimensions;
         d.content.width = width;
-        d.padding.left = padding_l;
-        d.padding.right = padding_r;
-        d.border.left =  border_l;
-        d.border.right = border_r;
         d.margin.left =  margin_l;
         d.margin.right = margin_r;
     }
 
+    // Position current box below previous boxes in container by updating height
     fn calculate_position(&mut self, b_box: Dimensions) {
-        let style = self.get_style_node()
+        let style = self.get_style_node();
+        let d = &mut self.dimensions;
+
+        d.margin.top = style.value_or("margin-top", 0.0);
+        d.margin.bottom = style.value_or("margin-top", 0.0);
+        d.border.top = style.value_or("border-top-width", 0.0);
+        d.border.bottom = style.value_or("border-top-width", 0.0);
+        d.padding.top = style.value_or("padding-top", 0.0);
+        d.padding.bottom = style.value_or("padding-top", 0.0);
+
+        d.content.x = b_box.content.x + d.margin.left + d.border.left + d.padding.left;
+        d.content.y = b_box.content.height + b_box.content.y + d.margin.top + d.border.top
+            + d.padding.top;
     }
 
     fn calculate_height(&mut self) {
-        
+        match self.get_style_node().value("height") {
+            Some(h) => match h.parse::<f32>() {
+                Ok(num) => { self.dimensions.content.height = num; },
+                Err(_) => {}
+            },
+            None => {}
+        }
     }
 
     fn layout_children(&mut self) {
         
     }
 
-    fn get_style_node(&self) -> &StyledNode {
+    fn get_style_node(&self) -> &'a StyledNode<'a> {
         match self.box_type {
             BoxType::Block(n) => n,
             BoxType::Inline(n) => n,
