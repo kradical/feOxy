@@ -26,8 +26,8 @@ fn main() {
 
     
     println!("");
-    let layout_tree = layout::LayoutBox::new(layout::BoxType::Anonymous);
-    print!("{:?}", layout_tree);
+    let layout_tree = layout::build_layout_tree(&style_tree_root);
+    layout::pretty_print(&layout_tree);
 }
 
 fn test_html() -> Vec<dom::Node> {

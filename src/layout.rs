@@ -9,6 +9,21 @@ struct Dimensions {
     margin: EdgeSizes,
 }
 
+impl Dimensions {
+    fn padding_box(&self) -> Rect {
+        self.content.expanded(self.padding)
+    }
+
+    fn border_box(&self) -> Rect {
+        self.padding_box().expanded(self.border)
+    }
+
+    fn margin_box(&self) -> Rect {
+        self.border_box().expanded(self.margin)
+    }
+
+}
+
 impl fmt::Debug for Dimensions {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "content:\n  {:?}\npadding:\n  {:?}\nborder:\n  {:?}\nmargin:\n  {:?}",
@@ -22,6 +37,18 @@ struct Rect {
     y: f32,
     width: f32,
     height: f32,
+}
+
+impl Rect {
+    //TODO margin collapsing
+    fn expanded(&self, e: EdgeSizes) -> Rect {
+        Rect {
+            x: self.x - e.left,
+            y: self.y - e.top,
+            width: self.width + e.left + e.right,
+            height: self.height + e.top + e.bottom,
+        }
+    }
 }
 
 impl fmt::Debug for Rect {
@@ -161,7 +188,12 @@ impl<'a> LayoutBox<'a> {
     }
 
     fn layout_children(&mut self) {
-        
+        let d = &mut self.dimensions;
+
+        for child in &mut self.children {
+            child.layout(*d);
+            d.content.height += child.dimensions.margin_box().height;
+        }
     }
 
     fn get_style_node(&self) -> &'a StyledNode<'a> {
@@ -197,7 +229,7 @@ impl<'a> fmt::Debug for BoxType<'a> {
     } 
 }
 
-fn build_layout_tree<'a>(node: &'a StyledNode) -> LayoutBox<'a> {
+pub fn build_layout_tree<'a>(node: &'a StyledNode) -> LayoutBox<'a> {
     let mut rect = LayoutBox::new(match node.get_display() {
         Display::Block => BoxType::Block(node),
         Display::Inline => BoxType::Inline(node),
@@ -212,4 +244,12 @@ fn build_layout_tree<'a>(node: &'a StyledNode) -> LayoutBox<'a> {
         }
     }
     rect
+}
+
+pub fn pretty_print<'a>(n: &'a LayoutBox) {
+    println!("{:?}\n", n);
+
+    for child in n.children.iter() {
+        pretty_print(&child);
+    }
 }
