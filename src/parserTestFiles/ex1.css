@@ -3,5 +3,22 @@ div.note { margin-bottom: 20px; padding: 10px; }
 #answer { display: none; }
 
 #LELEL.kekeroni {
-	prop: value;
+    prop: value;
+}
+
+p {
+    height: 10.0;
+}
+
+ul {
+    height: 11.0;
+}
+
+li {
+    height: 12.0;
+}
+
+.valid {
+    height: 50.0;
+    widht: 100.0;
 }

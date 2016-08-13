@@ -12,21 +12,24 @@ use std::io::{Read, BufReader};
 fn main() {
     let nodes = test_html();
     for node in nodes.iter() {
-        dom::pretty_print(node, 0);    
+        //dom::pretty_print(node, 0);    
     }
     let ref node = nodes[0];
 
     println!("");
     let ss = test_css();
-    print!("{:?}", ss);
+    //print!("{:?}", ss);
 
     println!("");
     let style_tree_root = style::StyledNode::new(&node, &ss);
-    style::pretty_print(&style_tree_root, 0);
+    //style::pretty_print(&style_tree_root, 0);
 
     
     println!("");
-    let layout_tree = layout::build_layout_tree(&style_tree_root);
+    let mut viewport = layout::Dimensions::default();
+    viewport.content.width = 800.0;
+    viewport.content.height = 600.0;
+    let layout_tree = layout::layout_tree(&style_tree_root, viewport);
     layout::pretty_print(&layout_tree);
 }
 

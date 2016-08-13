@@ -2,8 +2,8 @@ use style::{StyledNode, Display};
 use std::fmt;
 
 #[derive(Clone, Copy, Default)]
-struct Dimensions {
-    content: Rect,
+pub struct Dimensions {
+    pub content: Rect,
     padding: EdgeSizes,
     border: EdgeSizes,
     margin: EdgeSizes,
@@ -32,11 +32,11 @@ impl fmt::Debug for Dimensions {
 }
 
 #[derive(Clone, Copy, Default)]
-struct Rect {
+pub struct Rect {
     x: f32,
     y: f32,
-    width: f32,
-    height: f32,
+    pub width: f32,
+    pub height: f32,
 }
 
 impl Rect {
@@ -102,7 +102,7 @@ impl<'a> LayoutBox<'a> {
     fn layout(&mut self, bounding_box: Dimensions) {
         match self.box_type {
             BoxType::Block(_) => self.layout_block(bounding_box),
-            BoxType::Inline(_) => {},
+            BoxType::Inline(_) => self.layout_block(bounding_box),
             BoxType::Anonymous => {},
         }
     }
@@ -111,7 +111,7 @@ impl<'a> LayoutBox<'a> {
         self.calculate_width(b_box);
         self.calculate_position(b_box);
         self.layout_children();
-        self.calculate_height()
+        self.calculate_height();
     }
 
     fn calculate_width(&mut self, b_box: Dimensions) {
@@ -229,7 +229,17 @@ impl<'a> fmt::Debug for BoxType<'a> {
     } 
 }
 
-pub fn build_layout_tree<'a>(node: &'a StyledNode) -> LayoutBox<'a> {
+pub fn layout_tree<'a>(node: &'a StyledNode<'a>, mut containing_block: Dimensions) -> LayoutBox<'a> {
+    // The layout algorithm expects the container height to start at 0.
+    // TODO: Save the initial containing block height, for calculating percent heights.
+    containing_block.content.height = 0.0;
+
+    let mut root_box = build_layout_tree(node);
+    root_box.layout(containing_block);
+    return root_box;
+}
+
+fn build_layout_tree<'a>(node: &'a StyledNode) -> LayoutBox<'a> {
     let mut rect = LayoutBox::new(match node.get_display() {
         Display::Block => BoxType::Block(node),
         Display::Inline => BoxType::Inline(node),
