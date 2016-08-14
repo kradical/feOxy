@@ -74,7 +74,7 @@ impl fmt::Debug for EdgeSizes {
 pub struct LayoutBox<'a> {
     dimensions: Dimensions,
     box_type: BoxType<'a>,
-    children: Vec<LayoutBox<'a>>,
+    pub children: Vec<LayoutBox<'a>>,
 }
 
 impl<'a> LayoutBox<'a> {

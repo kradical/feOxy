@@ -12,17 +12,17 @@ use std::io::{Read, BufReader};
 fn main() {
     let nodes = test_html();
     for node in nodes.iter() {
-        //dom::pretty_print(node, 0);    
+        dom::pretty_print(node, 0);    
     }
     let ref node = nodes[0];
 
     println!("");
     let ss = test_css();
-    //print!("{:?}", ss);
+    print!("{:?}", ss);
 
     println!("");
     let style_tree_root = style::StyledNode::new(&node, &ss);
-    //style::pretty_print(&style_tree_root, 0);
+    style::pretty_print(&style_tree_root, 0);
 
     
     println!("");
@@ -66,3 +66,6 @@ fn test_css() -> css::Stylesheet {
 
     stylesheet
 }
+
+// TODO change this into a binary crate consumer of the rest of the code
+// TODO change the rest of the code into a library crate

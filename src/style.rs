@@ -20,7 +20,7 @@ impl<'a> StyledNode<'a> {
 
         for child in &node.children {
             match child.node_type {
-                NodeType::Element(ref e) => style_children.push(StyledNode::new(&child, ss)),
+                NodeType::Element(_) => style_children.push(StyledNode::new(&child, ss)),
                 _ => {}
             }
         }

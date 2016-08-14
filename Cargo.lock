@@ -1,4 +1,4 @@
 [root]
-name = "browser_engine"
+name = "rusty_browser"
 version = "0.1.0"
 
