@@ -8,20 +8,20 @@ pub type AttrMap = HashMap<String, String>;
 #[derive(PartialEq, Eq)]
 pub struct Node {
     pub children: Vec<Node>,
-    pub node_type: NodeType
+    pub node_type: NodeType,
 }
 
 #[derive(PartialEq, Eq)]
 pub enum NodeType {
     Text(String),
     Element(ElementData),
-    Comment(String)
+    Comment(String),
 }
 
 #[derive(PartialEq, Eq)]
 pub struct ElementData {
     pub tag_name: String,
-    attributes: AttrMap
+    attributes: AttrMap,
 }
 
 impl Node {
@@ -50,7 +50,7 @@ impl ElementData {
     pub fn new(tag: String, attrs: AttrMap) -> ElementData{
         ElementData {
             tag_name: tag,
-            attributes: attrs
+            attributes: attrs,
         }
     }
 
@@ -63,7 +63,7 @@ impl ElementData {
     pub fn get_classes(&self) -> HashSet<&str> {
         match self.attributes.get("class") {
             Some(s) => s.split(' ').collect(),
-            None => HashSet::new()
+            None => HashSet::new(),
         }
     } 
 }
@@ -82,7 +82,7 @@ impl fmt::Debug for NodeType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             NodeType::Text(ref t)|NodeType::Comment(ref t) => write!(f, "{}", t),
-            NodeType::Element(ref e) => write!(f, "{:?}", e)
+            NodeType::Element(ref e) => write!(f, "{:?}", e),
         }
     }
 }
@@ -108,7 +108,7 @@ pub fn pretty_print(n: &Node, indent_size: usize) {
 
     match n.node_type {
         NodeType::Element(ref e) => println!("{}</{}>", indent, e.tag_name),
-        _ => {}
+        _ => {},
     }
 }
 

@@ -45,7 +45,7 @@ fn test_html() -> Vec<dom::Node> {
     let mut html_input = String::new(); 
     file_reader.read_to_string(&mut html_input).unwrap();
 
-    let nodes = html_parse::Parser::new(html_input).parse_nodes();
+    let nodes = html_parse::Parser::new(&html_input).parse_nodes();
 
     nodes
 }

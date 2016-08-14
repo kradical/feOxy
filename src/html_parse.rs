@@ -1,18 +1,18 @@
 use dom::{AttrMap, ElementData, Node, NodeType};
 
 pub struct Parser {
-    pub html_content: String,
-    current_content: Vec<char>,
+    html_chars: Vec<char>,
+    current: usize,
 }
 
 impl Parser {
     /// Constructs a new `html_parse::Parser`.
     ///
     /// full_html: the complete html to parse.
-    pub fn new(full_html: String) -> Parser {
+    pub fn new(full_html: &str) -> Parser {
         Parser {
-            current_content: full_html.chars().collect(),
-            html_content: full_html,
+            html_chars: full_html.chars().collect(),
+            current: 0,
         }
     }
 
@@ -23,24 +23,20 @@ impl Parser {
 
         while self.has_chars() {
             self.consume_while(char::is_whitespace);
-            if self.has_chars() {
-                if self.peek() == '<' {
+            if self.peek().unwrap_or('_') == '<' {
+                self.consume();
+                if self.peek().unwrap_or('_') == '/' {
+                    self.consume_while(|x| x != '>');
                     self.consume();
-                    if self.peek() == '/' {
-                        self.consume_while(|x| x != '>');
-                        if self.has_chars() {
-                            self.consume();
-                        }
-                        break;
-                    } else if self.peek() == '!' {
-                        self.consume();
-                        nodes.push(self.parse_comment_node());
-                    } else {
-                        nodes.push(self.parse_node());
-                    }
+                    break;
+                } else if self.peek().unwrap_or('_') == '!' {
+                    self.consume();
+                    nodes.push(self.parse_comment_node());
                 } else {
-                    nodes.push(self.parse_text_node());
+                    nodes.push(self.parse_node());
                 }
+            } else {
+                nodes.push(self.parse_text_node());
             }
         }
         nodes
@@ -62,7 +58,7 @@ impl Parser {
     fn parse_text_node(&mut self) -> Node {
         let mut text_content = String::new();
 
-        while self.has_chars() && self.peek() != '<' {
+        while self.peek().unwrap_or('<') != '<' {
             let whitespace = self.consume_while(char::is_whitespace);
             if whitespace.len() > 0 {
                 text_content.push(' ');
@@ -77,17 +73,17 @@ impl Parser {
     fn parse_comment_node(&mut self) -> Node {
         let mut comment_content = String::new();
 
-        if self.has_chars() && self.peek() == '-' {
+        if self.peek().unwrap_or('_') == '-' {
             self.consume();
-            if self.has_chars() && self.peek() == '-' {
+            if self.peek().unwrap_or('_') == '-' {
                 self.consume();
-                if self.has_chars() && self.peek() == '>' {
+                if self.peek().unwrap_or('_') == '>' {
                     // invalid comment format
                     self.consume();
                     return Node::new(NodeType::Comment(comment_content), Vec::new());
-                } else if self.has_chars() && self.peek() == '-' {
+                } else if self.peek().unwrap_or('_') == '-' {
                     self.consume();
-                    if self.has_chars() && self.peek() == '>' {
+                    if self.peek().unwrap_or('_') == '>' {
                         // invalid comment format
                         self.consume();
                         return Node::new(NodeType::Comment(comment_content), Vec::new());
@@ -97,13 +93,11 @@ impl Parser {
                 }
                 while self.has_chars() {
                     comment_content.push_str(&self.consume_while(|x| x != '-'));
-                    if self.has_chars() && self.peek() == '-' {
+                    if self.peek().unwrap_or('_') == '-' {
                         self.consume();
-                        if self.has_chars() && self.peek() == '-' {
+                        if self.peek().unwrap_or('_') == '-' {
                             self.consume_while(|x| x != '>');
-                            if self.has_chars() {
-                                self.consume();
-                            }
+                            self.consume();
                             break;
                         } else {
                             comment_content.push('-')
@@ -117,32 +111,35 @@ impl Parser {
 
     /// Returns if the string still has characters in it.
     fn has_chars(&self) -> bool {
-        return self.current_content.len() > 0;
+        return self.html_chars.len() > self.current;
     }
 
     /// Returns the current first character without consuming it.
-    ///
-    /// # Panics
-    /// Will panic if current_content is empty.
-    fn peek(&self) -> char {
-        self.current_content[0]
+    fn peek(&self) -> Option<char> {
+        if self.current < self.html_chars.len() {
+            return Some(self.html_chars[self.current])
+        }
+        None
     }
 
     /// Consumes the first character and returns it.
-    ///
-    /// # Panics
-    /// Will panic if current_content is empty.
-    fn consume(&mut self) -> char {
-        self.current_content.remove(0)
+    fn consume(&mut self) -> Option<char> {
+        let top_char = self.peek();
+        self.current += 1;
+        top_char
     }
 
-    /// Consumes characters until condition is false or the current_content is empty.
+    /// Consumes characters until condition is false or the html_chars is empty.
     /// Returns a string of the consumed characters.
     fn consume_while<F>(&mut self, condition: F) -> String 
         where F : Fn(char) -> bool {
             let mut result = String::new();
-            while self.has_chars() && condition(self.peek()) {
-                result.push(self.consume());
+            while match self.peek() {
+                Some(c) => condition(c),
+                None => false,
+            } {
+                // free to unwrap because the check above guarentees there is a value to be consumed
+                result.push(self.consume().unwrap());
             }
             result
     }
@@ -152,28 +149,26 @@ impl Parser {
     fn parse_attributes(&mut self) -> AttrMap {
         let mut attributes = AttrMap::new();
 
-        while self.has_chars() && self.peek() != '>' {
+        while self.peek().unwrap_or('>') != '>' {
             self.consume_while(char::is_whitespace);
             let name = self.consume_while(is_valid_attr_name);
             self.consume_while(char::is_whitespace);
 
-            if self.has_chars() {
-                if self.peek() == '=' {
-                    self.consume(); // consume equals sign
-                    let value = self.parse_attr_value();
-                    attributes.insert(name, value);
-                } else if self.peek() == '>' || is_valid_attr_name(self.peek()) {
-                    // new attribute hash with name -> ""
-                    attributes.insert(name, "".to_string());
-                } else {
-                    // invalid attribute name consume until whitespace or end
-                    self.consume_while(|x| !x.is_whitespace() || x != '>');
-                }
+            if self.peek().unwrap_or('_') == '=' {
+                self.consume(); // consume equals sign
+                let value = self.parse_attr_value();
+                attributes.insert(name, value);
+            } else if self.peek().unwrap_or('_') == '>' || is_valid_attr_name(self.peek().unwrap_or(' ')) {
+                // new attribute hash with name -> ""
+                attributes.insert(name, "".to_string());
+            } else {
+                // invalid attribute name consume until whitespace or end
+                self.consume_while(|x| !x.is_whitespace() || x != '>');
             }
             self.consume_while(char::is_whitespace);
         }
 
-        if self.has_chars() && self.peek() == '>' {
+        if self.peek().unwrap_or('_') == '>' {
             self.consume();
         }
 
@@ -185,19 +180,17 @@ impl Parser {
     fn parse_attr_value(&mut self) -> String {
         self.consume_while(char::is_whitespace);
 
-        let result = match self.peek() {
+        let result = match self.peek().unwrap_or('_') {
             c @ '"'| c @ '\'' => {
                 self.consume();
                 self.consume_while(|x| x != c && x != '>')
             },
-            _ => self.consume_while(is_valid_attr_value)
+            _ => self.consume_while(is_valid_attr_value),
         };
 
-        if self.has_chars() {
-            match self.peek() {
-                '"'|'\'' => { self.consume(); },
-                _ => { }
-            }
+        match self.peek().unwrap_or('_') {
+            '"'|'\'' => { self.consume(); },
+            _ => {}
         }
 
         result
@@ -231,7 +224,31 @@ fn is_valid_attr_value(character: char) -> bool {
 //  -use a counter instead of destroying an element of the vector each time.
 
 /// Tests ----------------------------------------------------------------------
-#[test]
-fn test() {
-    assert!(true);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test a parser is constructed correctly.
+    #[test]
+    fn new_parser() {
+        let html_str = "<p>lel</p>";
+        let parser = Parser::new(html_str);
+
+        let expected_chars = vec![ '<', 'p', '>', 'l', 'e', 'l', '<', '/', 'p', '>' ];
+
+        assert_eq!(parser.current, 0);
+        assert_eq!(parser.html_chars, expected_chars);
+    }
+
+    /// Test a parser is constructed correctly.
+    #[test]
+    fn new_parser() {
+        let html_str = "<p>lel</p>";
+        let parser = Parser::new(html_str);
+
+        let expected_chars = vec![ '<', 'p', '>', 'l', 'e', 'l', '<', '/', 'p', '>' ];
+
+        assert_eq!(parser.current, 0);
+        assert_eq!(parser.html_chars, expected_chars);
+    }
 }
