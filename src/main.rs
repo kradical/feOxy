@@ -1,5 +1,6 @@
 mod dom;
 mod css;
+mod parse;
 mod html_parse;
 mod css_parse;
 mod style;
@@ -45,7 +46,7 @@ fn test_html() -> Vec<dom::Node> {
     let mut html_input = String::new(); 
     file_reader.read_to_string(&mut html_input).unwrap();
 
-    let nodes = html_parse::Parser::new(&html_input).parse_nodes();
+    let nodes = html_parse::HtmlParser::new(&html_input).parse_nodes();
 
     nodes
 }
@@ -62,7 +63,7 @@ fn test_css() -> css::Stylesheet {
     let mut css_input = String::new(); 
     file_reader.read_to_string(&mut css_input).unwrap();
 
-    let stylesheet = css_parse::Parser::new(css_input).parse_stylesheet();
+    let stylesheet = css_parse::CssParser::new(&css_input).parse_stylesheet();
 
     stylesheet
 }

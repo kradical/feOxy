@@ -1,16 +1,51 @@
 use dom::{AttrMap, ElementData, Node, NodeType};
+use parse::Parser;
 
-pub struct Parser {
+pub struct HtmlParser {
     html_chars: Vec<char>,
     current: usize,
 }
 
-impl Parser {
-    /// Constructs a new `html_parse::Parser`.
+impl Parser for HtmlParser {
+    /// Returns if the string still has characters in it.
+    fn has_chars(&self) -> bool {
+        return self.html_chars.len() > self.current;
+    }
+
+    /// Returns the current first character without consuming it.
+    fn peek(&self) -> Option<char> {
+        if self.current < self.html_chars.len() {
+            return Some(self.html_chars[self.current])
+        }
+        None
+    }
+
+    /// Consumes the first character and returns it.
+    fn consume(&mut self) -> Option<char> {
+        let top_char = self.peek();
+        self.current += 1;
+        top_char
+    }
+
+    /// Consumes characters until condition is false or there are no more chars left.
+    /// Returns a string of the consumed characters.
+    fn consume_while<F>(&mut self, condition: F) -> String where F : Fn(char) -> bool {
+        let mut result = String::new();
+        while self.peek().map_or(false, |c| condition(c)) {
+            // the check above guarentees there is a value to be consumed
+            result.push(self.consume().unwrap());
+        }
+
+        result
+    }
+}
+
+impl HtmlParser {
+    /// Constructs a new `html_parse::HtmlParser`.
     ///
     /// full_html: the complete html to parse.
-    pub fn new(full_html: &str) -> Parser {
-        Parser {
+    pub fn new(full_html: &str) -> HtmlParser {
+        HtmlParser {
             html_chars: full_html.chars().collect(),
             current: 0,
         }
@@ -23,13 +58,13 @@ impl Parser {
 
         while self.has_chars() {
             self.consume_while(char::is_whitespace);
-            if self.peek().unwrap_or('_') == '<' {
+            if self.peek().map_or(false, |c| c == '<') {
                 self.consume();
-                if self.peek().unwrap_or('_') == '/' {
+                if self.peek().map_or(false, |c| c == '/') {
                     self.consume_while(|x| x != '>');
                     self.consume();
                     break;
-                } else if self.peek().unwrap_or('_') == '!' {
+                } else if self.peek().map_or(false, |c| c == '!') {
                     self.consume();
                     nodes.push(self.parse_comment_node());
                 } else {
@@ -58,7 +93,7 @@ impl Parser {
     fn parse_text_node(&mut self) -> Node {
         let mut text_content = String::new();
 
-        while self.peek().unwrap_or('<') != '<' {
+        while self.peek().map_or(false, |c| c != '<') {
             let whitespace = self.consume_while(char::is_whitespace);
             if whitespace.len() > 0 {
                 text_content.push(' ');
@@ -73,17 +108,17 @@ impl Parser {
     fn parse_comment_node(&mut self) -> Node {
         let mut comment_content = String::new();
 
-        if self.peek().unwrap_or('_') == '-' {
+        if self.peek().map_or(false, |c| c == '-') {
             self.consume();
-            if self.peek().unwrap_or('_') == '-' {
+            if self.peek().map_or(false, |c| c == '-') {
                 self.consume();
-                if self.peek().unwrap_or('_') == '>' {
+                if self.peek().map_or(false, |c| c == '>') {
                     // invalid comment format
                     self.consume();
                     return Node::new(NodeType::Comment(comment_content), Vec::new());
-                } else if self.peek().unwrap_or('_') == '-' {
+                } else if self.peek().map_or(false, |c| c == '-') {
                     self.consume();
-                    if self.peek().unwrap_or('_') == '>' {
+                    if self.peek().map_or(false, |c| c == '>') {
                         // invalid comment format
                         self.consume();
                         return Node::new(NodeType::Comment(comment_content), Vec::new());
@@ -93,9 +128,9 @@ impl Parser {
                 }
                 while self.has_chars() {
                     comment_content.push_str(&self.consume_while(|x| x != '-'));
-                    if self.peek().unwrap_or('_') == '-' {
+                    if self.peek().map_or(false, |c| c == '-') {
                         self.consume();
-                        if self.peek().unwrap_or('_') == '-' {
+                        if self.peek().map_or(false, |c| c == '-') {
                             self.consume_while(|x| x != '>');
                             self.consume();
                             break;
@@ -109,56 +144,21 @@ impl Parser {
         Node::new(NodeType::Comment(comment_content), Vec::new())
     }
 
-    /// Returns if the string still has characters in it.
-    fn has_chars(&self) -> bool {
-        return self.html_chars.len() > self.current;
-    }
-
-    /// Returns the current first character without consuming it.
-    fn peek(&self) -> Option<char> {
-        if self.current < self.html_chars.len() {
-            return Some(self.html_chars[self.current])
-        }
-        None
-    }
-
-    /// Consumes the first character and returns it.
-    fn consume(&mut self) -> Option<char> {
-        let top_char = self.peek();
-        self.current += 1;
-        top_char
-    }
-
-    /// Consumes characters until condition is false or the html_chars is empty.
-    /// Returns a string of the consumed characters.
-    fn consume_while<F>(&mut self, condition: F) -> String 
-        where F : Fn(char) -> bool {
-            let mut result = String::new();
-            while match self.peek() {
-                Some(c) => condition(c),
-                None => false,
-            } {
-                // free to unwrap because the check above guarentees there is a value to be consumed
-                result.push(self.consume().unwrap());
-            }
-            result
-    }
-
     /// Consume characters after a tagname until '>' and return a map.
     /// TODO normalize caps
     fn parse_attributes(&mut self) -> AttrMap {
         let mut attributes = AttrMap::new();
 
-        while self.peek().unwrap_or('>') != '>' {
+        while self.peek().map_or(false, |c| c != '>') {
             self.consume_while(char::is_whitespace);
             let name = self.consume_while(is_valid_attr_name);
             self.consume_while(char::is_whitespace);
 
-            if self.peek().unwrap_or('_') == '=' {
+            if self.peek().map_or(false, |c| c == '=') {
                 self.consume(); // consume equals sign
                 let value = self.parse_attr_value();
                 attributes.insert(name, value);
-            } else if self.peek().unwrap_or('_') == '>' || is_valid_attr_name(self.peek().unwrap_or(' ')) {
+            } else if self.peek().map_or(false, |c| c == '>' || is_valid_attr_name(c)) {
                 // new attribute hash with name -> ""
                 attributes.insert(name, "".to_string());
             } else {
@@ -168,7 +168,7 @@ impl Parser {
             self.consume_while(char::is_whitespace);
         }
 
-        if self.peek().unwrap_or('_') == '>' {
+        if self.peek().map_or(false, |c| c == '>') {
             self.consume();
         }
 
@@ -180,8 +180,8 @@ impl Parser {
     fn parse_attr_value(&mut self) -> String {
         self.consume_while(char::is_whitespace);
 
-        let result = match self.peek().unwrap_or('_') {
-            c @ '"'| c @ '\'' => {
+        let result = match self.peek() {
+            Some(c) if c == '"' || c == '\'' => {
                 self.consume();
                 self.consume_while(|x| x != c && x != '>')
             },
@@ -232,19 +232,7 @@ mod tests {
     #[test]
     fn new_parser() {
         let html_str = "<p>lel</p>";
-        let parser = Parser::new(html_str);
-
-        let expected_chars = vec![ '<', 'p', '>', 'l', 'e', 'l', '<', '/', 'p', '>' ];
-
-        assert_eq!(parser.current, 0);
-        assert_eq!(parser.html_chars, expected_chars);
-    }
-
-    /// Test a parser is constructed correctly.
-    #[test]
-    fn new_parser() {
-        let html_str = "<p>lel</p>";
-        let parser = Parser::new(html_str);
+        let parser = HtmlParser::new(html_str);
 
         let expected_chars = vec![ '<', 'p', '>', 'l', 'e', 'l', '<', '/', 'p', '>' ];
 
