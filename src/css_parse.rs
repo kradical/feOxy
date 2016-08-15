@@ -1,4 +1,4 @@
-//! The css_parse module parses css stylesheets into css rule datastructures.
+//! The `css_parse` module parses css stylesheets into css rule datastructures.
 
 use css::{Declaration, Rule, Selector, SimpleSelector, Stylesheet};
 

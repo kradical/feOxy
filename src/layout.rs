@@ -1,3 +1,5 @@
+//! The `layout` module takes a style tree and creates a layout of boxes.
+
 use style::{StyledNode, Display};
 use std::fmt;
 

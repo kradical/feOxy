@@ -1,4 +1,4 @@
-//! The css module provides a stylesheet datastructure for the css parser to use.
+//! The `css` module provides a stylesheet datastructure for the css parser to use.
 
 use std::fmt;
 

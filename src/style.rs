@@ -1,4 +1,4 @@
-//! The style module takes a dom tree and stylesheet and constructs a style tree.
+//! The `style` module takes a dom tree and stylesheet and constructs a style tree.
 
 use dom::{Node, ElementData, NodeType};
 use css::{Selector, Stylesheet};

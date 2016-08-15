@@ -1,3 +1,4 @@
+//! The `render` module takes a tree of layout boxes and paints the screen.
 // use layout::{LayoutBox, Rect};
 // use css::{Color}; 
 

@@ -1,4 +1,4 @@
-//! The html_parse module parses a string of html into dom node datastructures.
+//! The `html_parse` module parses a string of html into dom node datastructures.
 
 use dom::{AttrMap, ElementData, Node, NodeType};
 
