@@ -41,7 +41,7 @@ impl Parser for HtmlParser {
 }
 
 impl HtmlParser {
-    /// Constructs a new `html_parse::HtmlParser`.
+    /// Constructs a new HtmlParser.
     ///
     /// full_html: the complete html to parse.
     pub fn new(full_html: &str) -> HtmlParser {
@@ -51,7 +51,7 @@ impl HtmlParser {
         }
     }
 
-    /// Entry point to parsing, recursively parses html nodes.
+    /// Entry point to parsing html, recursively parses html nodes.
     /// TODO check tags match, deal with self closing tags
     pub fn parse_nodes(&mut self) -> Vec<Node> {
         let mut nodes = Vec::new();

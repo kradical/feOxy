@@ -27,6 +27,8 @@ impl Parser for CssParser {
         top_char
     }
 
+    /// Consumes characters until condition is false or there are no more chars left.
+    /// Returns a string of the consumed characters.
     fn consume_while<F>(&mut self, condition: F) -> String where F : Fn(char) -> bool {
         let mut result = String::new();
         while self.peek().map_or(false, |c| condition(c)) {
@@ -39,6 +41,9 @@ impl Parser for CssParser {
 }
 
 impl CssParser {
+    /// Constructs a new CssParser.
+    ///
+    /// full_css: the complete css stylesheet to parse.
     pub fn new(full_css: &str) -> CssParser {
         CssParser {
             css_chars: full_css.chars().collect(),
@@ -46,6 +51,7 @@ impl CssParser {
         }
     }
 
+    /// Entry point to parsing css, iterively parse css rules.
     pub fn parse_stylesheet(&mut self) -> Stylesheet {
         let mut stylesheet = Stylesheet::new();
 
@@ -60,6 +66,7 @@ impl CssParser {
         stylesheet
     }
 
+    /// Parse the selectors for a single rule.
     fn parse_selectors(&mut self) -> Vec<Selector> {
         let mut selectors = Vec::<Selector>::new();
 
@@ -77,6 +84,7 @@ impl CssParser {
         selectors
     }
 
+    /// Parse a single selector in a comma seperated list of selectors.
     fn parse_selector(&mut self) -> Selector {
         let mut sselector = SimpleSelector::new();
         let mut selector = Selector::new();
@@ -107,6 +115,7 @@ impl CssParser {
         selector
     }
 
+    /// Parse a css identifier.
     fn parse_identifier(&mut self) -> String {
         let mut ident = String::new();
 
@@ -119,6 +128,7 @@ impl CssParser {
         ident
     }
 
+    /// Parse the id portion of a selector.
     fn parse_id(&mut self) -> Option<String> {
         match &self.parse_identifier()[..] {
             "" => None,
