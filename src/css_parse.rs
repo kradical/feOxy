@@ -1,61 +1,25 @@
 use css::{Stylesheet, Selector, SimpleSelector, Declaration, create_rule, create_declaration};
-use parse::Parser;
 
-pub struct CssParser {
-    css_chars: Vec<char>,
-    current: usize,
+use std::iter::Peekable;
+use std::str::Chars;
+
+pub struct CssParser<'a> {
+    chars: Peekable<Chars<'a>>,
 }
 
-impl Parser for CssParser {
-    /// Returns if the string still has characters in it.
-    fn has_chars(&self) -> bool {
-        return self.css_chars.len() > self.current;
-    }
-
-    /// Returns the current first character without consuming it.
-    fn peek(&self) -> Option<char> {
-        if self.current < self.css_chars.len() {
-            return Some(self.css_chars[self.current])
-        }
-        None
-    }
-
-    /// Consumes the first character and returns it.
-    fn consume(&mut self) -> Option<char> {
-        let top_char = self.peek();
-        self.current += 1;
-        top_char
-    }
-
-    /// Consumes characters until condition is false or there are no more chars left.
-    /// Returns a string of the consumed characters.
-    fn consume_while<F>(&mut self, condition: F) -> String where F : Fn(char) -> bool {
-        let mut result = String::new();
-        while self.peek().map_or(false, |c| condition(c)) {
-            // the check above guarentees there is a value to be consumed
-            result.push(self.consume().unwrap());
-        }
-
-        result
-    }
-}
-
-impl CssParser {
+impl<'a> CssParser<'a> {
     /// Constructs a new CssParser.
     ///
     /// full_css: the complete css stylesheet to parse.
     pub fn new(full_css: &str) -> CssParser {
-        CssParser {
-            css_chars: full_css.chars().collect(),
-            current: 0,
-        }
+        CssParser { chars: full_css.chars().peekable() }
     }
 
     /// Entry point to parsing css, iterively parse css rules.
     pub fn parse_stylesheet(&mut self) -> Stylesheet {
         let mut stylesheet = Stylesheet::new();
 
-        while self.has_chars() {
+        while self.chars.peek().is_some() {
             let selectors = self.parse_selectors();
             let styles = self.parse_declarations();
             let rule = create_rule(selectors, styles);
@@ -70,17 +34,17 @@ impl CssParser {
     fn parse_selectors(&mut self) -> Vec<Selector> {
         let mut selectors = Vec::<Selector>::new();
 
-        while self.peek().map_or(false, |c| c != '{') {
+        while self.chars.peek().map_or(false, |c| *c != '{') {
             let selector = self.parse_selector();
             selectors.push(selector);
 
             self.consume_while(char::is_whitespace);
-            if self.peek().map_or(false, |c| c == ',') {
-                self.consume();
+            if self.chars.peek().map_or(false, |c| *c == ',') {
+                self.chars.next();
             }
         }
 
-        self.consume();
+        self.chars.next();
         selectors
     }
 
@@ -91,20 +55,20 @@ impl CssParser {
 
         self.consume_while(char::is_whitespace);
         
-        sselector.tag_name = match self.peek() {
-            Some(c) if c == '#' || c == '.' => None,
+        sselector.tag_name = match self.chars.peek() {
+            Some(&c) if c == '#' || c == '.' => None,
             Some(_) => Some(self.parse_identifier()),
             None => None,
         };
 
-        while self.peek().map_or(false, |c| c != ',' && c != '{' && !c.is_whitespace()) {
-            match self.peek() {
-                Some(c) if c =='#' =>  {
-                    self.consume();
+        while self.chars.peek().map_or(false, |c| *c != ',' && *c != '{' && !(*c).is_whitespace()) {
+            match self.chars.peek() {
+                Some(&c) if c =='#' =>  {
+                    self.chars.next();
                     sselector.id = self.parse_id();
                 },
-                Some(c) if c == '.' => {
-                    self.consume();
+                Some(&c) if c == '.' => {
+                    self.chars.next();
                     sselector.classes.push(self.parse_identifier());
                 },
                 _ => panic!("INVALID STATE IN parse_selector"), // TODO handle css errors
@@ -119,11 +83,14 @@ impl CssParser {
     fn parse_identifier(&mut self) -> String {
         let mut ident = String::new();
 
-        self.peek().map_or((), |c| {
-            if is_valid_start_ident(c) { 
-                ident.push_str(&self.consume_while(is_valid_ident))
-            }
-        });
+        match self.chars.peek() {
+            Some(&c) => {
+                if is_valid_start_ident(c) { 
+                    ident.push_str(&self.consume_while(is_valid_ident))
+                }
+            },
+            None => {},
+        }
 
         ident
     }
@@ -136,15 +103,16 @@ impl CssParser {
         }
     }
 
+    /// Parse all the declarations for a rule.
     fn parse_declarations(&mut self) -> Vec<Declaration> {
         let mut declarations = Vec::<Declaration>::new();
 
-        while self.peek().map_or(false, |c| c != '}') {
+        while self.chars.peek().map_or(false, |c| *c != '}') {
             self.consume_while(char::is_whitespace);
 
             let property = self.consume_while(|x| x != ':');
 
-            self.consume();
+            self.chars.next();
             self.consume_while(char::is_whitespace);
 
             //TODO fix for correctness
@@ -153,37 +121,55 @@ impl CssParser {
 
             declarations.push(declaration);
 
-            if self.peek().map_or(false, |c| c == ';') {
-                self.consume();
+            if self.chars.peek().map_or(false, |c| *c == ';') {
+                self.chars.next();
             }
             self.consume_while(char::is_whitespace);
         }
 
-        self.consume();
+        self.chars.next();
         declarations
+    }
+
+    /// Consumes characters until condition is false or there are no more chars left.
+    /// Returns a string of the consumed characters.
+    fn consume_while<F>(&mut self, condition: F) -> String where F : Fn(char) -> bool {
+        let mut result = String::new();
+        while self.chars.peek().map_or(false, |c| condition(*c)) {
+            // the check above guarentees there is a value to be consumed
+            result.push(self.chars.next().unwrap());
+        }
+
+        result
     }
 }
 
+/// Returns true if the char is a valid for a css identifier.
 fn is_valid_ident(c: char) -> bool {
     is_valid_start_ident(c) || c.is_digit(10) || c == '-'
 }
 
+/// Returns true if the char is a valid for the first char of a css identifier.
 fn is_valid_start_ident(c: char) -> bool {
     is_letter(c) || is_non_ascii(c) || c == '_'
 }
 
+/// Returns true if the char is an ASCII letter.
 fn is_letter(c: char) -> bool {
     is_upper_letter(c) || is_lower_letter(c)
 }
 
+/// Returns true if the char is an ASCII uppercase char.
 fn is_upper_letter(c: char) -> bool {
     c >= 'A' && c <= 'Z'
 }
 
+/// Returns true if the char is an ASCII lowercase char.
 fn is_lower_letter(c: char) -> bool {
     c >= 'a' && c <= 'z'
 }
 
+/// Returns true if the char is non-ascii.
 fn is_non_ascii(c: char) -> bool {
     c >= '\u{0080}'
 }
@@ -199,16 +185,25 @@ fn is_non_ascii(c: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::iter::Peekable;
+    use std::str::Chars;
 
     /// Test a parser is constructed correctly.
     #[test]
     fn new_parser() {
-        let css_str = "p{lel:kek;}";
-        let parser = CssParser::new(css_str);
+        let (parser, mut expected_chars) = test_parser("p{lel:kek;}");
 
-        let expected_chars = vec![ 'p', '{', 'l', 'e', 'l', ':', 'k', 'e', 'k', ';', '}' ];
+        for character in parser.chars {
+            assert_eq!(character, expected_chars.next().unwrap());
+        }
 
-        assert_eq!(parser.current, 0);
-        assert_eq!(parser.css_chars, expected_chars);
+        assert_eq!(None, expected_chars.peek());
+    }
+
+    /// Utility to return a parser for tests. 
+    fn test_parser<'a>(mock_css: &'a str) -> (CssParser, Peekable<Chars<'a>>) {
+        let parser = CssParser::new(mock_css);
+        let expected_chars = mock_css.chars().peekable();
+        (parser, expected_chars)
     }
 }

@@ -1,6 +1,5 @@
 mod dom;
 mod css;
-mod parse;
 mod html_parse;
 mod css_parse;
 mod style;

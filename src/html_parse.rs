@@ -1,54 +1,18 @@
 use dom::{AttrMap, ElementData, Node, NodeType};
-use parse::Parser;
 
-pub struct HtmlParser {
-    html_chars: Vec<char>,
-    current: usize,
+use std::iter::Peekable;
+use std::str::Chars;
+
+pub struct HtmlParser<'a> {
+    chars: Peekable<Chars<'a>>,
 }
 
-impl Parser for HtmlParser {
-    /// Returns if the string still has characters in it.
-    fn has_chars(&self) -> bool {
-        return self.html_chars.len() > self.current;
-    }
-
-    /// Returns the current first character without consuming it.
-    fn peek(&self) -> Option<char> {
-        if self.current < self.html_chars.len() {
-            return Some(self.html_chars[self.current])
-        }
-        None
-    }
-
-    /// Consumes the first character and returns it.
-    fn consume(&mut self) -> Option<char> {
-        let top_char = self.peek();
-        self.current += 1;
-        top_char
-    }
-
-    /// Consumes characters until condition is false or there are no more chars left.
-    /// Returns a string of the consumed characters.
-    fn consume_while<F>(&mut self, condition: F) -> String where F : Fn(char) -> bool {
-        let mut result = String::new();
-        while self.peek().map_or(false, |c| condition(c)) {
-            // the check above guarentees there is a value to be consumed
-            result.push(self.consume().unwrap());
-        }
-
-        result
-    }
-}
-
-impl HtmlParser {
+impl<'a> HtmlParser<'a> {
     /// Constructs a new HtmlParser.
     ///
     /// full_html: the complete html to parse.
     pub fn new(full_html: &str) -> HtmlParser {
-        HtmlParser {
-            html_chars: full_html.chars().collect(),
-            current: 0,
-        }
+        HtmlParser { chars: full_html.chars().peekable() }
     }
 
     /// Entry point to parsing html, recursively parses html nodes.
@@ -56,16 +20,16 @@ impl HtmlParser {
     pub fn parse_nodes(&mut self) -> Vec<Node> {
         let mut nodes = Vec::new();
 
-        while self.has_chars() {
+        while self.chars.peek().is_some() {
             self.consume_while(char::is_whitespace);
-            if self.peek().map_or(false, |c| c == '<') {
-                self.consume();
-                if self.peek().map_or(false, |c| c == '/') {
+            if self.chars.peek().map_or(false, |c| *c == '<') {
+                self.chars.next();
+                if self.chars.peek().map_or(false, |c| *c == '/') {
                     self.consume_while(|x| x != '>');
-                    self.consume();
+                    self.chars.next();
                     break;
-                } else if self.peek().map_or(false, |c| c == '!') {
-                    self.consume();
+                } else if self.chars.peek().map_or(false, |c| *c == '!') {
+                    self.chars.next();
                     nodes.push(self.parse_comment_node());
                 } else {
                     nodes.push(self.parse_node());
@@ -93,7 +57,7 @@ impl HtmlParser {
     fn parse_text_node(&mut self) -> Node {
         let mut text_content = String::new();
 
-        while self.peek().map_or(false, |c| c != '<') {
+        while self.chars.peek().map_or(false, |c| *c != '<') {
             let whitespace = self.consume_while(char::is_whitespace);
             if whitespace.len() > 0 {
                 text_content.push(' ');
@@ -108,31 +72,31 @@ impl HtmlParser {
     fn parse_comment_node(&mut self) -> Node {
         let mut comment_content = String::new();
 
-        if self.peek().map_or(false, |c| c == '-') {
-            self.consume();
-            if self.peek().map_or(false, |c| c == '-') {
-                self.consume();
-                if self.peek().map_or(false, |c| c == '>') {
+        if self.chars.peek().map_or(false, |c| *c == '-') {
+            self.chars.next();
+            if self.chars.peek().map_or(false, |c| *c == '-') {
+                self.chars.next();
+                if self.chars.peek().map_or(false, |c| *c == '>') {
                     // invalid comment format
-                    self.consume();
+                    self.chars.next();
                     return Node::new(NodeType::Comment(comment_content), Vec::new());
-                } else if self.peek().map_or(false, |c| c == '-') {
-                    self.consume();
-                    if self.peek().map_or(false, |c| c == '>') {
+                } else if self.chars.peek().map_or(false, |c| *c == '-') {
+                    self.chars.next();
+                    if self.chars.peek().map_or(false, |c| *c == '>') {
                         // invalid comment format
-                        self.consume();
+                        self.chars.next();
                         return Node::new(NodeType::Comment(comment_content), Vec::new());
                     } else {
                         comment_content.push('-');
                     }
                 }
-                while self.has_chars() {
+                while self.chars.peek().is_some() {
                     comment_content.push_str(&self.consume_while(|x| x != '-'));
-                    if self.peek().map_or(false, |c| c == '-') {
-                        self.consume();
-                        if self.peek().map_or(false, |c| c == '-') {
+                    if self.chars.peek().map_or(false, |c| *c == '-') {
+                        self.chars.next();
+                        if self.chars.peek().map_or(false, |c| *c == '-') {
                             self.consume_while(|x| x != '>');
-                            self.consume();
+                            self.chars.next();
                             break;
                         } else {
                             comment_content.push('-')
@@ -149,16 +113,16 @@ impl HtmlParser {
     fn parse_attributes(&mut self) -> AttrMap {
         let mut attributes = AttrMap::new();
 
-        while self.peek().map_or(false, |c| c != '>') {
+        while self.chars.peek().map_or(false, |c| *c != '>') {
             self.consume_while(char::is_whitespace);
             let name = self.consume_while(is_valid_attr_name);
             self.consume_while(char::is_whitespace);
 
-            if self.peek().map_or(false, |c| c == '=') {
-                self.consume(); // consume equals sign
+            if self.chars.peek().map_or(false, |c| *c == '=') {
+                self.chars.next(); // consume equals sign
                 let value = self.parse_attr_value();
                 attributes.insert(name, value);
-            } else if self.peek().map_or(false, |c| c == '>' || is_valid_attr_name(c)) {
+            } else if self.chars.peek().map_or(false, |c| *c == '>' || is_valid_attr_name(*c)) {
                 // new attribute hash with name -> ""
                 attributes.insert(name, "".to_string());
             } else {
@@ -168,8 +132,8 @@ impl HtmlParser {
             self.consume_while(char::is_whitespace);
         }
 
-        if self.peek().map_or(false, |c| c == '>') {
-            self.consume();
+        if self.chars.peek().map_or(false, |c| *c == '>') {
+            self.chars.next();
         }
 
         attributes
@@ -180,17 +144,29 @@ impl HtmlParser {
     fn parse_attr_value(&mut self) -> String {
         self.consume_while(char::is_whitespace);
 
-        let result = match self.peek() {
-            Some(c) if c == '"' || c == '\'' => {
-                self.consume();
+        let result = match self.chars.peek() {
+            Some(&c) if c == '"' || c == '\'' => {
+                self.chars.next();
                 self.consume_while(|x| x != c && x != '>')
             },
             _ => self.consume_while(is_valid_attr_value),
         };
 
-        match self.peek().unwrap_or('_') {
-            '"'|'\'' => { self.consume(); },
+        match self.chars.peek().unwrap_or(&'_') {
+            &'"'|&'\'' => { self.chars.next(); },
             _ => {}
+        }
+
+        result
+    }
+
+    /// Consumes characters until condition is false or there are no more chars left.
+    /// Returns a string of the consumed characters.
+    fn consume_while<F>(&mut self, condition: F) -> String where F : Fn(char) -> bool {
+        let mut result = String::new();
+        while self.chars.peek().map_or(false, |c| condition(*c)) {
+            // the check above guarentees there is a value to be consumed
+            result.push(self.chars.next().unwrap());
         }
 
         result
@@ -221,22 +197,31 @@ fn is_valid_attr_value(character: char) -> bool {
 //  -parse text/comment nodes vs element node
 //  -script tags/link tags
 //  -parse character references
-//  -use a counter instead of destroying an element of the vector each time.
+//  -rewrite to use an iterator 
 
 /// Tests ----------------------------------------------------------------------
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::iter::Peekable;
+    use std::str::Chars;
 
     /// Test a parser is constructed correctly.
     #[test]
     fn new_parser() {
-        let html_str = "<p>lel</p>";
-        let parser = HtmlParser::new(html_str);
+        let (parser, mut expected_chars) = test_parser("<p>lel</p>");
 
-        let expected_chars = vec![ '<', 'p', '>', 'l', 'e', 'l', '<', '/', 'p', '>' ];
+        for character in parser.chars {
+            assert_eq!(character, expected_chars.next().unwrap());
+        }
 
-        assert_eq!(parser.current, 0);
-        assert_eq!(parser.html_chars, expected_chars);
+        assert_eq!(None, expected_chars.peek());
+    }
+
+    /// Utility to return a parser for tests. 
+    fn test_parser<'a>(mock_html: &'a str) -> (HtmlParser, Peekable<Chars<'a>>) {
+        let parser = HtmlParser::new(mock_html);
+        let expected_chars = mock_html.chars().peekable();
+        (parser, expected_chars)
     }
 }
