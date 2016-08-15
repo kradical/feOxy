@@ -1,17 +1,40 @@
+//! The css module provides a stylesheet datastructure for the css parser to use.
+
 use std::fmt;
 
 pub struct Stylesheet {
     pub rules: Vec<Rule>
 }
 
+pub struct Rule {
+    pub selectors: Vec<Selector>,
+    pub declarations: Vec<Declaration>
+}
+
+pub struct Selector {
+    pub simple: Vec<SimpleSelector>,
+    pub combinators: Vec<char>
+}
+
+pub struct SimpleSelector {
+    pub tag_name: Option<String>,
+    pub id: Option<String>,
+    pub classes: Vec<String>
+}
+
+pub struct Declaration {
+    pub property: String,
+    pub value: String
+}
+
 impl Stylesheet {
+    /// Constructs a new stylesheet.
     pub fn new() -> Stylesheet {
         Stylesheet {
             rules: Vec::new()
         }
     }
 }
-
 impl fmt::Debug for Stylesheet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut rule_result = String::new();
@@ -25,11 +48,18 @@ impl fmt::Debug for Stylesheet {
     } 
 }
 
-pub struct Rule {
-    pub selectors: Vec<Selector>,
-    pub declarations: Vec<Declaration>
+impl Rule {
+    /// Constructs a new Rule.
+    ///
+    /// s: All selectors the rule applies to.
+    /// d: All declarations associated with the rule.
+    pub fn new(s: Vec<Selector>, d: Vec<Declaration>) -> Rule {
+        Rule {
+            selectors: s,
+            declarations: d,
+        }
+    }
 }
-
 impl fmt::Debug for Rule {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut sel_result = String::new();
@@ -53,12 +83,10 @@ impl fmt::Debug for Rule {
     }
 }
 
-pub struct Selector {
-    pub simple: Vec<SimpleSelector>,
-    pub combinators: Vec<char>
-}
-
 impl Selector {
+    /// Constructs a new Selector.
+    ///
+    /// SimpleSelectors can be combined with combinators into complex selectors.
     pub fn new() -> Selector {
         Selector {
             simple: Vec::new(),
@@ -66,7 +94,6 @@ impl Selector {
         }
     }
 }
-
 impl fmt::Debug for Selector {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut result = String::new();
@@ -82,13 +109,8 @@ impl fmt::Debug for Selector {
     }
 }
 
-pub struct SimpleSelector {
-    pub tag_name: Option<String>,
-    pub id: Option<String>,
-    pub classes: Vec<String>
-}
-
 impl SimpleSelector {
+    /// Constructs a new SimpleSelector.
     pub fn new() -> SimpleSelector {
         SimpleSelector {
             tag_name: None,
@@ -97,7 +119,6 @@ impl SimpleSelector {
         }
     }
 }
-
 impl fmt::Debug for SimpleSelector {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut result = String::new();
@@ -124,27 +145,36 @@ impl fmt::Debug for SimpleSelector {
     }
 }
 
-pub struct Declaration {
-    pub property: String,
-    pub value: String
+impl Declaration {
+    /// Constructs a new Declaration.
+    ///
+    /// p: Property name.
+    /// v: Property value.
+    pub fn new(p: String, v: String) -> Declaration {
+        Declaration {
+            property: p,
+            value: v,
+        }
+    }
 }
-
 impl fmt::Debug for Declaration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: {}", self.property, self.value)
     }
 }
 
-pub fn create_rule(sel: Vec<Selector>, decl: Vec<Declaration>) -> Rule {
-    Rule {
-        selectors: sel,
-        declarations: decl
-    }
-}
+// TODO
+//  -add enum for css value types
+//  -add creation logic for css value types
 
-pub fn create_declaration(prop: String, val: String) -> Declaration {
-    Declaration {
-        property: prop,
-        value: val
+/// Tests ----------------------------------------------------------------------
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test
+    #[test]
+    fn it_works() {
+
     }
 }

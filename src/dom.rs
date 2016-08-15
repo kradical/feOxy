@@ -1,4 +1,4 @@
-//! the `dom` module provides a dom node datastructure for an html parser to use
+//! The `dom` module provides a dom node datastructure for an html parser to use.
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;

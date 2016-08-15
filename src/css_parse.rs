@@ -1,4 +1,6 @@
-use css::{Stylesheet, Selector, SimpleSelector, Declaration, create_rule, create_declaration};
+//! The css_parse module parses css stylesheets into css rule datastructures.
+
+use css::{Declaration, Rule, Selector, SimpleSelector, Stylesheet};
 
 use std::iter::Peekable;
 use std::str::Chars;
@@ -22,7 +24,7 @@ impl<'a> CssParser<'a> {
         while self.chars.peek().is_some() {
             let selectors = self.parse_selectors();
             let styles = self.parse_declarations();
-            let rule = create_rule(selectors, styles);
+            let rule = Rule::new(selectors, styles);
 
             stylesheet.rules.push(rule);
         }
@@ -117,7 +119,7 @@ impl<'a> CssParser<'a> {
 
             //TODO fix for correctness
             let value = self.consume_while(|x| x != ';' && x != '\n' && x != '}');
-            let declaration = create_declaration(property, value);
+            let declaration = Declaration::new(property, value);
 
             declarations.push(declaration);
 
