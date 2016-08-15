@@ -6,3 +6,4 @@ authors = ["Konrad <konrad_here@hotmail.com>"]
 [[bin]]
 name = "main"
 doc = false
+test = false

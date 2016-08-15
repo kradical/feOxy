@@ -1,9 +1,5 @@
-mod dom;
-mod css;
-mod html_parse;
-mod css_parse;
-mod style;
-mod layout;
+extern crate rusty_browser;
+use rusty_browser::{dom, css, style, layout, html_parse, css_parse};
 
 use std::env;
 use std::fs::File;
