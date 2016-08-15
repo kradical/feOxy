@@ -1,34 +1,24 @@
 use style::{StyledNode, Display};
 use std::fmt;
 
+pub struct LayoutBox<'a> {
+    dimensions: Dimensions,
+    box_type: BoxType<'a>,
+    pub children: Vec<LayoutBox<'a>>,
+}
+
+pub enum BoxType<'a> {
+    Block(&'a StyledNode<'a>),
+    Inline(&'a StyledNode<'a>),
+    Anonymous,
+}
+
 #[derive(Clone, Copy, Default)]
 pub struct Dimensions {
     pub content: Rect,
     padding: EdgeSizes,
     border: EdgeSizes,
     margin: EdgeSizes,
-}
-
-impl Dimensions {
-    fn padding_box(&self) -> Rect {
-        self.content.expanded(self.padding)
-    }
-
-    fn border_box(&self) -> Rect {
-        self.padding_box().expanded(self.border)
-    }
-
-    fn margin_box(&self) -> Rect {
-        self.border_box().expanded(self.margin)
-    }
-
-}
-
-impl fmt::Debug for Dimensions {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "content:\n  {:?}\npadding:\n  {:?}\nborder:\n  {:?}\nmargin:\n  {:?}",
-            self.content, self.padding, self.border, self.margin)
-    }
 }
 
 #[derive(Clone, Copy, Default)]
@@ -39,24 +29,6 @@ pub struct Rect {
     pub height: f32,
 }
 
-impl Rect {
-    //TODO margin collapsing
-    fn expanded(&self, e: EdgeSizes) -> Rect {
-        Rect {
-            x: self.x - e.left,
-            y: self.y - e.top,
-            width: self.width + e.left + e.right,
-            height: self.height + e.top + e.bottom,
-        }
-    }
-}
-
-impl fmt::Debug for Rect {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "x: {}, y: {}, w: {}, h: {}", self.x, self.y, self.width, self.height)
-    }
-}
-
 #[derive(Clone, Copy, Default)]
 struct EdgeSizes {
     left: f32,
@@ -65,19 +37,10 @@ struct EdgeSizes {
     bottom: f32,
 }
 
-impl fmt::Debug for EdgeSizes {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "l: {} r: {} top: {} bot: {}", self.left, self.right, self.top, self.bottom)
-    }
-}
-
-pub struct LayoutBox<'a> {
-    dimensions: Dimensions,
-    box_type: BoxType<'a>,
-    pub children: Vec<LayoutBox<'a>>,
-}
-
 impl<'a> LayoutBox<'a> {
+    /// Constructs a new LayoutBox
+    ///
+    /// box_type: the type of layout box to create.
     pub fn new(box_type: BoxType) -> LayoutBox {
         LayoutBox {
             box_type: box_type,
@@ -86,6 +49,7 @@ impl<'a> LayoutBox<'a> {
         }
     }
 
+    /// Returns either the current inline/anonymous box or creates a new one
     fn get_inline(&mut self) -> &mut LayoutBox<'a> {
         match self.box_type {
             BoxType::Inline(_) | BoxType::Anonymous => self,
@@ -99,14 +63,20 @@ impl<'a> LayoutBox<'a> {
         }
     }
 
-    fn layout(&mut self, bounding_box: Dimensions) {
+    /// Lays out the current box, including recursively laying out children boxes.
+    ///
+    /// b_box: the parent bounding box.
+    fn layout(&mut self, b_box: Dimensions) {
         match self.box_type {
-            BoxType::Block(_) => self.layout_block(bounding_box),
-            BoxType::Inline(_) => self.layout_block(bounding_box),
+            BoxType::Block(_) => self.layout_block(b_box),
+            BoxType::Inline(_) => self.layout_block(b_box),
             BoxType::Anonymous => {},
         }
     }
 
+    /// Calls all the functions to layout the current layout box.
+    ///
+    /// b_box: the parent bounding box.
     fn layout_block(&mut self, b_box: Dimensions)  {
         self.calculate_width(b_box);
         self.calculate_position(b_box);
@@ -114,6 +84,9 @@ impl<'a> LayoutBox<'a> {
         self.calculate_height();
     }
 
+    /// Update the current layout box's width dimensions.
+    ///
+    /// b_box: the parent bounding box.
     fn calculate_width(&mut self, b_box: Dimensions) {
         let style = self.get_style_node();
         let d = &mut self.dimensions;
@@ -160,7 +133,7 @@ impl<'a> LayoutBox<'a> {
         d.margin.right = margin_r;
     }
 
-    // Position current box below previous boxes in container by updating height
+    /// Position current box below previous boxes in container by updating height
     fn calculate_position(&mut self, b_box: Dimensions) {
         let style = self.get_style_node();
         let d = &mut self.dimensions;
@@ -177,6 +150,7 @@ impl<'a> LayoutBox<'a> {
             + d.padding.top;
     }
 
+    /// Use a style node's height value if it exists
     fn calculate_height(&mut self) {
         match self.get_style_node().value("height") {
             Some(h) => match h.parse::<f32>() {
@@ -187,6 +161,7 @@ impl<'a> LayoutBox<'a> {
         }
     }
 
+    /// Layout the current nodes children and adjust it's height.
     fn layout_children(&mut self) {
         let d = &mut self.dimensions;
 
@@ -196,25 +171,69 @@ impl<'a> LayoutBox<'a> {
         }
     }
 
+    /// Return the style node for the layout block.
     fn get_style_node(&self) -> &'a StyledNode<'a> {
         match self.box_type {
             BoxType::Block(n) => n,
             BoxType::Inline(n) => n,
-            BoxType::Anonymous => panic!("anonymous block has no associated style node"),
+            BoxType::Anonymous => panic!("anonymous blocks have no associated style node"),
         }
     }
 }
-
 impl<'a> fmt::Debug for LayoutBox<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "type:\n  {:?}\n{:?}\n", self.box_type, self.dimensions)
     } 
 }
 
-pub enum BoxType<'a> {
-    Block(&'a StyledNode<'a>),
-    Inline(&'a StyledNode<'a>),
-    Anonymous,
+impl Dimensions {
+    /// Updates content size to include paddings.
+    fn padding_box(&self) -> Rect {
+        self.content.expanded(self.padding)
+    }
+
+    /// Updates content size to include borders.
+    fn border_box(&self) -> Rect {
+        self.padding_box().expanded(self.border)
+    }
+
+    /// Updates content size to include margins.
+    fn margin_box(&self) -> Rect {
+        self.border_box().expanded(self.margin)
+    }
+
+}
+impl fmt::Debug for Dimensions {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "content:\n  {:?}\npadding:\n  {:?}\nborder:\n  {:?}\nmargin:\n  {:?}",
+            self.content, self.padding, self.border, self.margin)
+    }
+}
+
+impl Rect {
+    /// Expands a rect with the given dimensions.
+    ///
+    /// e: the EdgeSizes to expand by.
+    /// TODO margin collapsing
+    fn expanded(&self, e: EdgeSizes) -> Rect {
+        Rect {
+            x: self.x - e.left,
+            y: self.y - e.top,
+            width: self.width + e.left + e.right,
+            height: self.height + e.top + e.bottom,
+        }
+    }
+}
+impl fmt::Debug for Rect {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "x: {}, y: {}, w: {}, h: {}", self.x, self.y, self.width, self.height)
+    }
+}
+
+impl fmt::Debug for EdgeSizes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "l: {} r: {} top: {} bot: {}", self.left, self.right, self.top, self.bottom)
+    }
 }
 
 impl<'a> fmt::Debug for BoxType<'a> {
@@ -229,18 +248,25 @@ impl<'a> fmt::Debug for BoxType<'a> {
     } 
 }
 
-pub fn layout_tree<'a>(node: &'a StyledNode<'a>, mut containing_block: Dimensions) -> LayoutBox<'a> {
+/// Entry point to create a layout tree.
+///
+/// root: The root of the style tree to layout. 
+/// containing_block: The window or viewport.
+pub fn layout_tree<'a>(root: &'a StyledNode<'a>, mut containing_block: Dimensions) -> LayoutBox<'a> {
     // The layout algorithm expects the container height to start at 0.
     // TODO: Save the initial containing block height, for calculating percent heights.
     containing_block.content.height = 0.0;
 
-    let mut root_box = build_layout_tree(node);
+    let mut root_box = build_layout_tree(root);
     root_box.layout(containing_block);
     return root_box;
 }
 
+/// Recursively builds the layout tree.
+///
+/// node: The current style node being laid out.
 fn build_layout_tree<'a>(node: &'a StyledNode) -> LayoutBox<'a> {
-    let mut rect = LayoutBox::new(match node.get_display() {
+    let mut layout_node = LayoutBox::new(match node.get_display() {
         Display::Block => BoxType::Block(node),
         Display::Inline => BoxType::Inline(node),
         Display::None => panic!("root node has display: none")
@@ -248,18 +274,33 @@ fn build_layout_tree<'a>(node: &'a StyledNode) -> LayoutBox<'a> {
 
     for child in &node.children {
         match child.get_display() {
-            Display::Block => rect.children.push(build_layout_tree(child)),
-            Display::Inline => rect.get_inline().children.push(build_layout_tree(child)),
+            Display::Block => layout_node.children.push(build_layout_tree(child)),
+            Display::Inline => layout_node.get_inline().children.push(build_layout_tree(child)),
             Display::None => {}
         }
     }
-    rect
+    layout_node
 }
 
+/// Print a layout node and it's descendents
+///
+/// n: The node of the style tree to print.
 pub fn pretty_print<'a>(n: &'a LayoutBox) {
     println!("{:?}\n", n);
 
     for child in n.children.iter() {
         pretty_print(&child);
+    }
+}
+
+/// Tests ----------------------------------------------------------------------
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test
+    #[test]
+    fn it_works() {
+
     }
 }

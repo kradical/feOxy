@@ -166,6 +166,7 @@ impl fmt::Debug for Declaration {
 // TODO
 //  -add enum for css value types
 //  -add creation logic for css value types
+//  -write tests
 
 /// Tests ----------------------------------------------------------------------
 #[cfg(test)]
