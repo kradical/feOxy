@@ -19,7 +19,7 @@ impl<'a> CssParser<'a> {
 
     /// Entry point to parsing css, iterively parse css rules.
     pub fn parse_stylesheet(&mut self) -> Stylesheet {
-        let mut stylesheet = Stylesheet::new();
+        let mut stylesheet = Stylesheet::default();
 
         while self.chars.peek().is_some() {
             let selectors = self.parse_selectors();
@@ -34,7 +34,7 @@ impl<'a> CssParser<'a> {
 
     /// Parse the selectors for a single rule.
     fn parse_selectors(&mut self) -> Vec<Selector> {
-        let mut selectors = Vec::<Selector>::new();
+        let mut selectors = Vec::new();
 
         while self.chars.peek().map_or(false, |c| *c != '{') {
             let selector = self.parse_selector();
@@ -52,8 +52,8 @@ impl<'a> CssParser<'a> {
 
     /// Parse a single selector in a comma seperated list of selectors.
     fn parse_selector(&mut self) -> Selector {
-        let mut sselector = SimpleSelector::new();
-        let mut selector = Selector::new();
+        let mut sselector = SimpleSelector::default();
+        let mut selector = Selector::default();
 
         self.consume_while(char::is_whitespace);
         

@@ -1,38 +1,46 @@
 //! The `css` module provides a stylesheet datastructure for the css parser to use.
 
 use std::fmt;
+use std::default::Default;
 
 pub struct Stylesheet {
-    pub rules: Vec<Rule>
+    pub rules: Vec<Rule>,
 }
 
+#[derive(PartialEq, Eq)]
 pub struct Rule {
     pub selectors: Vec<Selector>,
-    pub declarations: Vec<Declaration>
+    pub declarations: Vec<Declaration>,
 }
 
+#[derive(PartialEq, Eq)]
 pub struct Selector {
     pub simple: Vec<SimpleSelector>,
-    pub combinators: Vec<char>
+    pub combinators: Vec<char>,
 }
 
+#[derive(PartialEq, Eq)]
 pub struct SimpleSelector {
     pub tag_name: Option<String>,
     pub id: Option<String>,
-    pub classes: Vec<String>
+    pub classes: Vec<String>,
 }
 
+#[derive(PartialEq, Eq)]
 pub struct Declaration {
     pub property: String,
-    pub value: String
+    pub value: String,
 }
 
 impl Stylesheet {
     /// Constructs a new stylesheet.
-    pub fn new() -> Stylesheet {
-        Stylesheet {
-            rules: Vec::new()
-        }
+    pub fn new(r: Vec<Rule>) -> Stylesheet {
+        Stylesheet { rules: r }
+    }
+}
+impl Default for Stylesheet {
+    fn default() -> Self {
+        Stylesheet { rules: Vec::new() }
     }
 }
 impl fmt::Debug for Stylesheet {
@@ -57,6 +65,14 @@ impl Rule {
         Rule {
             selectors: s,
             declarations: d,
+        }
+    }
+}
+impl Default for Rule {
+    fn default() -> Self {
+        Rule {
+            selectors: Vec::new(),
+            declarations: Vec::new(),
         }
     }
 }
@@ -87,10 +103,18 @@ impl Selector {
     /// Constructs a new Selector.
     ///
     /// SimpleSelectors can be combined with combinators into complex selectors.
-    pub fn new() -> Selector {
+    pub fn new(s: Vec<SimpleSelector>, c: Vec<char>) -> Selector {
+        Selector {
+            simple: s,
+            combinators: c,
+        }
+    }
+}
+impl Default for Selector {
+    fn default() -> Self {
         Selector {
             simple: Vec::new(),
-            combinators: Vec:: new()
+            combinators: Vec::new(),
         }
     }
 }
@@ -111,11 +135,20 @@ impl fmt::Debug for Selector {
 
 impl SimpleSelector {
     /// Constructs a new SimpleSelector.
-    pub fn new() -> SimpleSelector {
+    pub fn new(t: Option<String>, i: Option<String>, c: Vec<String>) -> SimpleSelector {
+        SimpleSelector {
+            tag_name: t,
+            id: i,
+            classes: c,
+        }
+    }
+}
+impl Default for SimpleSelector {
+    fn default() -> Self {
         SimpleSelector {
             tag_name: None,
             id: None,
-            classes: Vec::new()
+            classes: Vec::new(),
         }
     }
 }
@@ -157,6 +190,14 @@ impl Declaration {
         }
     }
 }
+impl Default for Declaration {
+    fn default() -> Self {
+        Declaration {
+            property: String::from(""),
+            value: String::from(""),
+        }
+    }
+}
 impl fmt::Debug for Declaration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: {}", self.property, self.value)
@@ -173,9 +214,73 @@ impl fmt::Debug for Declaration {
 mod tests {
     use super::*;
 
-    /// Test
+    /// Test a new stylesheet is constructed correctly.
     #[test]
-    fn it_works() {
+    fn new_stylesheet() {
+        let ss = Stylesheet::default();
 
+        assert_eq!(ss.rules, vec![]);
+    }
+
+    /// Test full stylesheet construction.
+    #[test]
+    fn full_stylesheet() {
+        let tag = Some(String::from("div"));
+        let id = Some(String::from("identifier"));
+        let classes = vec![String::from("class1"), String::from("class2")];
+        
+        let ss1 = SimpleSelector::new(tag, id, Vec::new());
+        let ss2 = SimpleSelector::new(None, None, classes);
+
+        let sel1 = Selector::new(vec![ss1], Vec::new());
+        let sel2 = Selector::new(vec![ss2], Vec::new());
+        
+        let decl1 = Declaration::new(String::from("prop"), String::from("val"));
+        let decl2 = Declaration::new(String::from("top"), String::from("kek"));
+
+        let rule1 = Rule::new(vec![sel1, sel2], vec![decl1, decl2]);
+        let rule2 = Rule::new(vec![], vec![]);
+
+        let ss = Stylesheet::new(vec![rule1, rule2]);
+
+        // TODO assert something
+    }
+
+    /// Test a new rule is constructed correctly.
+    #[test]
+    fn new_rule() {
+        let rule = Rule::new(vec![], vec![]);
+
+        assert_eq!(rule.selectors, vec![]);
+        assert_eq!(rule.declarations, vec![]);
+    }
+
+    /// Test a new selector is constructed correctly.
+    #[test]
+    fn new_selector() {
+        let sel = Selector::default();
+
+        assert_eq!(sel.simple, vec![]);
+        assert_eq!(sel.combinators, vec![]);
+    }
+
+    /// Test a new simple selector is constructed correctly.
+    #[test]
+    fn new_simple() {
+        let ss = SimpleSelector::default();
+        let expected_classes: Vec<String> = vec![];
+
+        assert_eq!(ss.tag_name, None);
+        assert_eq!(ss.id, None);
+        assert_eq!(ss.classes, expected_classes);
+    }
+
+    /// Test a new declaration is constructed correctly.
+    #[test]
+    fn new_declaration() {
+        let decl = Declaration::default();
+
+        assert_eq!(decl.property, "");
+        assert_eq!(decl.value, "");
     }
 }
