@@ -149,7 +149,7 @@ impl<'a> HtmlParser<'a> {
         let result = match self.chars.peek() {
             Some(&c) if c == '"' || c == '\'' => {
                 self.chars.next();
-                self.consume_while(|x| x != c && x != '>')
+                self.consume_while(|x| x != c)
             },
             _ => self.consume_while(is_valid_attr_value),
         };
@@ -189,7 +189,7 @@ fn is_valid_attr_name(character: char) -> bool {
 /// TODO no ambiguous ampersand
 fn is_valid_attr_value(character: char) -> bool {
     match character {
-        ' '|'"'|'\''|'<'|'>'|'`' => false,
+        ' '|'"'|'\''|'='|'<'|'>'|'`' => false,
         _ => true
     }
 }
@@ -205,6 +205,8 @@ fn is_valid_attr_value(character: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dom::AttrMap;
+
     use std::iter::Peekable;
     use std::str::Chars;
 
@@ -218,6 +220,79 @@ mod tests {
         }
 
         assert_eq!(None, expected_chars.peek());
+    }
+
+    /// Test an empty attr value is parsed correctly.
+    #[test]
+    fn attr_value_empty() {
+        let (mut parser, _) = test_parser("");
+        assert_eq!("", parser.parse_attr_value());
+    }
+
+    /// Test an empty attr value is parsed correctly.
+    #[test]
+    fn attr_value_end() {
+        let (mut parser, _) = test_parser(">");
+        assert_eq!("", parser.parse_attr_value());
+    }
+
+    /// Test an regular attr value is parsed correctly.
+    #[test]
+    fn attr_value_reg() {
+        let (mut parser, _) = test_parser("regularValue");
+        assert_eq!("regularValue", parser.parse_attr_value());
+
+        let (mut parser, _) = test_parser("regularValue>");
+        assert_eq!("regularValue", parser.parse_attr_value());
+
+        let (mut parser, _) = test_parser("regularValue ");
+        assert_eq!("regularValue", parser.parse_attr_value());
+
+        let (mut parser, _) = test_parser("regular<Value");
+        assert_eq!("regular", parser.parse_attr_value());
+    }
+
+    /// Test an quoted attr value is parsed correctly.
+    #[test]
+    fn attr_value_quote() {
+        let (mut parser, _) = test_parser("'regularValue'");
+        assert_eq!("regularValue", parser.parse_attr_value());
+
+        let (mut parser, _) = test_parser("\"regular'>< -_=Value\"");
+        assert_eq!("regular'>< -_=Value", parser.parse_attr_value());
+
+        let (mut parser, _) = test_parser("'regular\">< -_=Value'");
+        assert_eq!("regular\">< -_=Value", parser.parse_attr_value());
+
+        let (mut parser, _) = test_parser("\"regular\">< -_=Value\"");
+        assert_eq!("regular", parser.parse_attr_value());
+    }
+
+    /// Test empty attributes are parsed correctly.
+    #[test]
+    fn attrs_empty() {
+        let (mut parser, _) = test_parser("");
+        assert_eq!(AttrMap::new(), parser.parse_attributes());
+    }
+
+    /// Test end attributes are parsed correctly.
+    #[test]
+    fn attrs_end() {
+        let (mut parser, _) = test_parser(">");
+        assert_eq!(AttrMap::new(), parser.parse_attributes());
+    }
+
+    /// Test end attributes are parsed correctly.
+    #[test]
+    fn attrs_reg() {
+        let (mut parser, _) = test_parser("name0 name1=value1 name2='value2' name3=\"value3\">");
+        let mut expected = AttrMap::new();
+        expected.insert("name0".to_string(), "".to_string());
+        expected.insert("name1".to_string(), "value1".to_string());
+        expected.insert("name2".to_string(), "value2".to_string());
+        expected.insert("name3".to_string(), "value3".to_string());
+
+        assert_eq!(expected, parser.parse_attributes());
     }
 
     /// Utility to return a parser for tests. 
