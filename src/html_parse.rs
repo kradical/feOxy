@@ -154,9 +154,8 @@ impl<'a> HtmlParser<'a> {
             _ => self.consume_while(is_valid_attr_value),
         };
 
-        match self.chars.peek().unwrap_or(&'_') {
-            &'"'|&'\'' => { self.chars.next(); },
-            _ => {}
+        if self.chars.peek().map_or(false, |c| *c == '"' || *c == '\'') {
+            self.chars.next();
         }
 
         result
@@ -176,19 +175,31 @@ impl<'a> HtmlParser<'a> {
 }
 
 /// Utility to check if a character can be used for an attribute name.
-/// TODO deal with control characters
-/// TODO  U+0020 SPACE, "tab" (U+0009), "LF" (U+000A), "FF" (U+000C), and "CR" (U+000D). instead of ' '
-fn is_valid_attr_name(character: char) -> bool {
-    match character {
-        ' '|'"'|'\''|'>'|'/'|'=' => false,
-        _ => true
+fn is_valid_attr_name(c: char) -> bool {
+    !is_excluded_name(c) && !is_control(c)
+}
+
+fn is_control(ch: char) -> bool {
+    match ch {
+        '\u{007F}' => true,
+        c if c >= '\u{0000}' && c <= '\u{001F}' => true,
+        c if c >= '\u{0080}' && c <= '\u{009F}' => true,
+        _ => false,
+    }
+    
+}
+
+fn is_excluded_name(c: char) -> bool {
+    match c {
+        ' '|'"'|'\''|'>'|'/'|'=' => true,
+        _ => false,
     }
 }
 
 /// Utility to check if a character can be used for an attribute value.
 /// TODO no ambiguous ampersand
-fn is_valid_attr_value(character: char) -> bool {
-    match character {
+fn is_valid_attr_value(c: char) -> bool {
+    match c {
         ' '|'"'|'\''|'='|'<'|'>'|'`' => false,
         _ => true
     }
@@ -196,15 +207,14 @@ fn is_valid_attr_value(character: char) -> bool {
 
 //TODO 
 //  -check and consume function that takes a condition
-//  -parse text/comment nodes vs element node
 //  -script tags/link tags
 //  -parse character references
-//  -rewrite to use an iterator 
 
 /// Tests ----------------------------------------------------------------------
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::is_control;
     use dom::AttrMap;
 
     use std::iter::Peekable;
@@ -284,7 +294,7 @@ mod tests {
 
     /// Test end attributes are parsed correctly.
     #[test]
-    fn attrs_reg() {
+    fn attrs_regular() {
         let (mut parser, _) = test_parser("name0 name1=value1 name2='value2' name3=\"value3\">");
         let mut expected = AttrMap::new();
         expected.insert("name0".to_string(), "".to_string());
@@ -293,6 +303,26 @@ mod tests {
         expected.insert("name3".to_string(), "value3".to_string());
 
         assert_eq!(expected, parser.parse_attributes());
+    }
+
+    /// Test invalid attributes
+    #[test]
+    fn attrs_invalid() {
+        let (mut parser, _) = test_parser("name0 name1=val'ue1");
+        let mut expected = AttrMap::new();
+        expected.insert("name0".to_string(), "".to_string());
+        expected.insert("name1".to_string(), "val".to_string());
+
+        assert_eq!(expected, parser.parse_attributes());
+    }
+
+    /// Test if a character is a control character
+    #[test]
+    fn control_characters() {
+        assert!(is_control('\u{0001}'));
+        assert!(is_control('\u{007F}'));
+        assert!(is_control('\u{0081}'));
+        assert!(!is_control(' '));
     }
 
     /// Utility to return a parser for tests. 
