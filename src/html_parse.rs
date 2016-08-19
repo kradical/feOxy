@@ -117,26 +117,22 @@ impl<'a> HtmlParser<'a> {
 
         while self.chars.peek().map_or(false, |c| *c != '>') {
             self.consume_while(char::is_whitespace);
-            let name = self.consume_while(is_valid_attr_name);
+            let name = self.consume_while(|c| is_valid_attr_name(c));
             self.consume_while(char::is_whitespace);
-
-            if self.chars.peek().map_or(false, |c| *c == '=') {
-                self.chars.next(); // consume equals sign
-                let value = self.parse_attr_value();
-                attributes.insert(name, value);
-            } else if self.chars.peek().map_or(false, |c| *c == '>' || is_valid_attr_name(*c)) {
-                // new attribute hash with name -> ""
-                attributes.insert(name, "".to_string());
+            
+            let value = if self.chars.peek().map_or(false, |c| *c == '=') {
+                self.chars.next(); // consume the '='
+                self.consume_while(char::is_whitespace);
+                let s = self.parse_attr_value();
+                self.consume_while(|c| !c.is_whitespace() && c != '>');
+                self.consume_while(char::is_whitespace);
+                s
             } else {
-                // invalid attribute name consume until whitespace or end
-                self.consume_while(|x| !x.is_whitespace() || x != '>');
-            }
-            self.consume_while(char::is_whitespace);
+                "".to_string()
+            };
+            attributes.insert(name, value);
         }
-
-        if self.chars.peek().map_or(false, |c| *c == '>') {
-            self.chars.next();
-        }
+        self.chars.next(); // consume the '>' if it exists.
 
         attributes
     }
@@ -149,14 +145,12 @@ impl<'a> HtmlParser<'a> {
         let result = match self.chars.peek() {
             Some(&c) if c == '"' || c == '\'' => {
                 self.chars.next();
-                self.consume_while(|x| x != c)
+                let ret = self.consume_while(|x| x != c);
+                self.chars.next(); // consume the quote
+                ret
             },
             _ => self.consume_while(is_valid_attr_value),
         };
-
-        if self.chars.peek().map_or(false, |c| *c == '"' || *c == '\'') {
-            self.chars.next();
-        }
 
         result
     }
@@ -260,6 +254,9 @@ mod tests {
 
         let (mut parser, _) = test_parser("regular<Value");
         assert_eq!("regular", parser.parse_attr_value());
+
+        let (mut parser, _) = test_parser("regular'Value");
+        assert_eq!("regular", parser.parse_attr_value());
     }
 
     /// Test an quoted attr value is parsed correctly.
@@ -275,6 +272,9 @@ mod tests {
         assert_eq!("regular\">< -_=Value", parser.parse_attr_value());
 
         let (mut parser, _) = test_parser("\"regular\">< -_=Value\"");
+        assert_eq!("regular", parser.parse_attr_value());
+
+        let (mut parser, _) = test_parser("'regular'>< -_=Value'");
         assert_eq!("regular", parser.parse_attr_value());
     }
 
@@ -295,9 +295,10 @@ mod tests {
     /// Test end attributes are parsed correctly.
     #[test]
     fn attrs_regular() {
-        let (mut parser, _) = test_parser("name0 name1=value1 name2='value2' name3=\"value3\">");
+        let (mut parser, _) = test_parser("name0 name1=value1 kek name2  ='value2' name3  = \"value3\"  ");
         let mut expected = AttrMap::new();
         expected.insert("name0".to_string(), "".to_string());
+        expected.insert("kek".to_string(), "".to_string());
         expected.insert("name1".to_string(), "value1".to_string());
         expected.insert("name2".to_string(), "value2".to_string());
         expected.insert("name3".to_string(), "value3".to_string());
@@ -308,10 +309,11 @@ mod tests {
     /// Test invalid attributes
     #[test]
     fn attrs_invalid() {
-        let (mut parser, _) = test_parser("name0 name1=val'ue1");
+        let (mut parser, _) = test_parser("name0 name1=val'ue1 name2='va l ue2'");
         let mut expected = AttrMap::new();
         expected.insert("name0".to_string(), "".to_string());
         expected.insert("name1".to_string(), "val".to_string());
+        expected.insert("name2".to_string(), "va l ue2".to_string());
 
         assert_eq!(expected, parser.parse_attributes());
     }
