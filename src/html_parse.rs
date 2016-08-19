@@ -111,19 +111,19 @@ impl<'a> HtmlParser<'a> {
     }
 
     /// Consume characters after a tagname until '>' and return a map.
-    /// TODO normalize caps
     fn parse_attributes(&mut self) -> AttrMap {
         let mut attributes = AttrMap::new();
 
         while self.chars.peek().map_or(false, |c| *c != '>') {
             self.consume_while(char::is_whitespace);
-            let name = self.consume_while(|c| is_valid_attr_name(c));
+            let name = self.consume_while(|c| is_valid_attr_name(c)).to_lowercase();
             self.consume_while(char::is_whitespace);
             
             let value = if self.chars.peek().map_or(false, |c| *c == '=') {
                 self.chars.next(); // consume the '='
                 self.consume_while(char::is_whitespace);
                 let s = self.parse_attr_value();
+                // cleans up aftere any invalid characters
                 self.consume_while(|c| !c.is_whitespace() && c != '>');
                 self.consume_while(char::is_whitespace);
                 s
@@ -137,8 +137,7 @@ impl<'a> HtmlParser<'a> {
         attributes
     }
 
-    /// Consume an attribute value (<tagname attrname=value>) and return it.
-    /// TODO proper validation and error recovery
+    /// Consume an attribute value and return it.
     fn parse_attr_value(&mut self) -> String {
         self.consume_while(char::is_whitespace);
 
@@ -292,7 +291,7 @@ mod tests {
         assert_eq!(AttrMap::new(), parser.parse_attributes());
     }
 
-    /// Test end attributes are parsed correctly.
+    /// Test regular well formed attributes are parsed correctly.
     #[test]
     fn attrs_regular() {
         let (mut parser, _) = test_parser("name0 name1=value1 kek name2  ='value2' name3  = \"value3\"  ");
@@ -306,7 +305,7 @@ mod tests {
         assert_eq!(expected, parser.parse_attributes());
     }
 
-    /// Test invalid attributes
+    /// Test an invalid attribute.
     #[test]
     fn attrs_invalid() {
         let (mut parser, _) = test_parser("name0 name1=val'ue1 name2='va l ue2'");
@@ -316,6 +315,37 @@ mod tests {
         expected.insert("name2".to_string(), "va l ue2".to_string());
 
         assert_eq!(expected, parser.parse_attributes());
+    }
+
+    /// Test case insensitivity for attr names and case sensitivity for attr values.
+    #[test]
+    fn attrs_case() {
+        let (mut parser, _) = test_parser("NameZero NAMEone=VALUEone NAMETWO='VALUETWO' namethree=valuethree");
+        let mut expected = AttrMap::new();
+        expected.insert("namezero".to_string(), "".to_string());
+        expected.insert("nameone".to_string(), "VALUEone".to_string());
+        expected.insert("nametwo".to_string(), "VALUETWO".to_string());
+        expected.insert("namethree".to_string(), "valuethree".to_string());
+
+        assert_eq!(expected, parser.parse_attributes());        
+    }
+
+    /// Test empty comment node.
+    #[test]
+    fn comment_empty() {
+
+    }
+
+    /// Test end comment node.
+    #[test]
+    fn comment_end() {
+        
+    }
+
+    /// Test regular comment node.
+    #[test]
+    fn comment_regular() {
+        
     }
 
     /// Test if a character is a control character
