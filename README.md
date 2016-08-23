@@ -1,5 +1,9 @@
-# rusty_browser
-bare bones browser engine
+# FeOxy
+Browser in rust
 
-Loosely following this blog - https://limpet.net/mbrubeck/2014/08/08/toy-layout-engine-1.html
-Trying to implement things with minimal "guidance" and then comparing implementations
+For educational / enjoyment purposes.
+
+Need to:
+* turn TODO comments into issues
+* start a CI build
+* write render engine
