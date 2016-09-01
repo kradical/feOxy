@@ -74,39 +74,96 @@ impl<'a> HtmlParser<'a> {
     fn parse_comment_node(&mut self) -> Node {
         let mut comment_content = String::new();
 
+        // ensure comment begins with <!--
         if self.chars.peek().map_or(false, |c| *c == '-') {
             self.chars.next();
             if self.chars.peek().map_or(false, |c| *c == '-') {
                 self.chars.next();
-                if self.chars.peek().map_or(false, |c| *c == '>') {
-                    // invalid comment format
+            } else {
+                self.consume_while(|c| c != '>');
+                return Node::new(NodeType::Comment(comment_content), Vec::new());
+            }
+        } else {
+            self.consume_while(|c| c != '>');
+            return Node::new(NodeType::Comment(comment_content), Vec::new());
+        }
+
+        // comments beginning with > are invalid
+        if self.chars.peek().map_or(false, |c| *c == '>') {
+            self.chars.next();
+            return Node::new(NodeType::Comment(comment_content), Vec::new());
+        }
+
+        // comments beginning with -> are invalid
+        if self.chars.peek().map_or(false, |c| *c == '-') {
+            self.chars.next();
+            if self.chars.peek().map_or(false, |c| *c == '>') {
+                self.chars.next();
+                return Node::new(NodeType::Comment(comment_content), Vec::new());
+            } else {
+                comment_content.push('-');
+            }
+        }
+
+        while self.chars.peek().is_some() {
+            comment_content.push_str(&self.consume_while(|c| c != '<' && c != '-'));
+            // check if comment contains <!-- and is invalid
+            if self.chars.peek().map_or(false, |c| *c == '<') {
+                self.chars.next();
+                if self.chars.peek().map_or(false, |c| *c == '!') {
                     self.chars.next();
-                    return Node::new(NodeType::Comment(comment_content), Vec::new());
-                } else if self.chars.peek().map_or(false, |c| *c == '-') {
-                    self.chars.next();
-                    if self.chars.peek().map_or(false, |c| *c == '>') {
-                        // invalid comment format
-                        self.chars.next();
-                        return Node::new(NodeType::Comment(comment_content), Vec::new());
-                    } else {
-                        comment_content.push('-');
-                    }
-                }
-                while self.chars.peek().is_some() {
-                    comment_content.push_str(&self.consume_while(|x| x != '-'));
                     if self.chars.peek().map_or(false, |c| *c == '-') {
                         self.chars.next();
                         if self.chars.peek().map_or(false, |c| *c == '-') {
-                            self.consume_while(|x| x != '>');
-                            self.chars.next();
-                            break;
+                            self.consume_while(|c| c != '>');
+                            return Node::new(NodeType::Comment(String::from("")), Vec::new());
                         } else {
-                            comment_content.push('-')
+                            comment_content.push_str("<!-");
                         }
+                    // <! ---> is an invalid sequence to end a comment
+                    } else if self.chars.peek().map_or(false, |c| *c == ' ') {
+                        self.chars.next();
+                        if self.chars.peek().map_or(false, |c| *c == '-') {
+                            self.chars.next();
+                            if self.chars.peek().map_or(false, |c| *c == '-') {
+                                self.chars.next();
+                                if self.chars.peek().map_or(false, |c| *c == '-') {
+                                    self.chars.next();
+                                    if self.chars.peek().map_or(false, |c| *c == '>') {
+                                        self.chars.next();
+                                        return Node::new(NodeType::Comment(String::from("")), Vec::new());
+                                    } else {
+                                        comment_content.push_str("<! --");
+                                    }
+                                } else {
+                                    comment_content.push_str("<! -");
+                                }
+                            } else {
+                                comment_content.push_str("<! ");
+                            }
+                        }
+                    } else {
+                        comment_content.push_str("<!");
                     }
+                } else {
+                    comment_content.push('<');
+                }
+            } else if self.chars.peek().map_or(false, |c| *c == '-') {
+                self.chars.next();
+                if self.chars.peek().map_or(false, |c| *c == '-') {
+                    self.chars.next();
+                    if self.chars.peek().map_or(false, |c| *c == '>') {
+                        self.chars.next();
+                        break;
+                    } else {
+                        comment_content.push_str("--");
+                    }
+                } else {
+                    comment_content.push('-');
                 }
             }
         }
+
         Node::new(NodeType::Comment(comment_content), Vec::new())
     }
 
@@ -118,7 +175,7 @@ impl<'a> HtmlParser<'a> {
             self.consume_while(char::is_whitespace);
             let name = self.consume_while(|c| is_valid_attr_name(c)).to_lowercase();
             self.consume_while(char::is_whitespace);
-            
+
             let value = if self.chars.peek().map_or(false, |c| *c == '=') {
                 self.chars.next(); // consume the '='
                 self.consume_while(char::is_whitespace);
@@ -179,7 +236,7 @@ fn is_control(ch: char) -> bool {
         c if c >= '\u{0080}' && c <= '\u{009F}' => true,
         _ => false,
     }
-    
+
 }
 
 fn is_excluded_name(c: char) -> bool {
@@ -198,7 +255,7 @@ fn is_valid_attr_value(c: char) -> bool {
     }
 }
 
-//TODO 
+//TODO
 //  -check and consume function that takes a condition
 //  -script tags/link tags
 //  -parse character references
@@ -208,7 +265,7 @@ fn is_valid_attr_value(c: char) -> bool {
 mod tests {
     use super::*;
     use super::is_control;
-    use dom::AttrMap;
+    use dom::{AttrMap, Node, NodeType};
 
     use std::iter::Peekable;
     use std::str::Chars;
@@ -327,25 +384,71 @@ mod tests {
         expected.insert("nametwo".to_string(), "VALUETWO".to_string());
         expected.insert("namethree".to_string(), "valuethree".to_string());
 
-        assert_eq!(expected, parser.parse_attributes());        
+        assert_eq!(expected, parser.parse_attributes());
     }
 
     /// Test empty comment node.
     #[test]
     fn comment_empty() {
+        let (mut parser, _) = test_parser("<!---->");
+        let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
 
+        assert_eq!(expected, parser.parse_comment_node());
     }
 
     /// Test end comment node.
     #[test]
     fn comment_end() {
-        
+        let (mut parser, _) = test_parser("-->");
+        let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
+
+        assert_eq!(expected, parser.parse_comment_node());
     }
 
     /// Test regular comment node.
     #[test]
     fn comment_regular() {
-        
+        let (mut parser, _) = test_parser("--Here is a comment \n '\"<>XD\"'-->");
+        let comment_content = String::from("Here is a comment \n '\"<>XD\"'");
+        let expected = Node::new(NodeType::Comment(comment_content), Vec::new());
+
+        assert_eq!(expected, parser.parse_comment_node());
+    }
+
+    /// Test comment node that begins with >.
+    #[test]
+    fn comment_invalid1() {
+        let (mut parser, _) = test_parser("-->Here is a comment \n '\"<>XD\"'-->");
+        let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
+
+        assert_eq!(expected, parser.parse_comment_node());
+    }
+
+    /// Test comment node that begins with ->.
+    #[test]
+    fn comment_invalid2() {
+        let (mut parser, _) = test_parser("--->Here is a comment \n '\"<>XD\"'-->");
+        let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
+
+        assert_eq!(expected, parser.parse_comment_node());
+    }
+
+    /// Test comment node that conains <!--.
+    #[test]
+    fn comment_invalid3() {
+        let (mut parser, _) = test_parser("--Here is a <!--comment \n '\"<>XD\"'-->");
+        let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
+
+        assert_eq!(expected, parser.parse_comment_node());
+    }
+
+    /// Test comment node that ends with <! -.
+    #[test]
+    fn comment_invalid4() {
+        let (mut parser, _) = test_parser("--Here is a comment \n '\"<>XD\"'<! --->");
+        let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
+
+        assert_eq!(expected, parser.parse_comment_node());
     }
 
     /// Test if a character is a control character
@@ -357,7 +460,7 @@ mod tests {
         assert!(!is_control(' '));
     }
 
-    /// Utility to return a parser for tests. 
+    /// Utility to return a parser for tests.
     fn test_parser<'a>(mock_html: &'a str) -> (HtmlParser, Peekable<Chars<'a>>) {
         let parser = HtmlParser::new(mock_html);
         let expected_chars = mock_html.chars().peekable();
