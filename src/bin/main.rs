@@ -1,5 +1,5 @@
-extern crate rusty_browser;
-use rusty_browser::{dom, css, style, layout, html_parse, css_parse};
+extern crate fe_oxy;
+use fe_oxy::{dom, css, style, layout, html_parse, css_parse};
 
 use std::env;
 use std::fs::File;
@@ -8,7 +8,7 @@ use std::io::{Read, BufReader};
 fn main() {
     let nodes = test_html();
     for node in nodes.iter() {
-        dom::pretty_print(node, 0);    
+        dom::pretty_print(node, 0);
     }
     let ref node = nodes[0];
 
@@ -20,7 +20,7 @@ fn main() {
     let style_tree_root = style::StyledNode::new(&node, &ss);
     style::pretty_print(&style_tree_root, 0);
 
-    
+
     println!("");
     let mut viewport = layout::Dimensions::default();
     viewport.content.width = 800.0;
@@ -38,7 +38,7 @@ fn test_html() -> Vec<dom::Node> {
         Err(e) => panic!("file: {}\nerror: {}", path.display(), e)
     };
 
-    let mut html_input = String::new(); 
+    let mut html_input = String::new();
     file_reader.read_to_string(&mut html_input).unwrap();
 
     let nodes = html_parse::HtmlParser::new(&html_input).parse_nodes();
@@ -55,7 +55,7 @@ fn test_css() -> css::Stylesheet {
         Err(e) => panic!("file: {}\nerror: {}", path.display(), e)
     };
 
-    let mut css_input = String::new(); 
+    let mut css_input = String::new();
     file_reader.read_to_string(&mut css_input).unwrap();
 
     let stylesheet = css_parse::CssParser::new(&css_input).parse_stylesheet();

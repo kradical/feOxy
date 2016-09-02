@@ -53,7 +53,7 @@ impl fmt::Debug for Stylesheet {
             rule_result.push_str(&format!("{:?}", rule));
         }
         write!(f, "{}", rule_result)
-    } 
+    }
 }
 
 impl Rule {
@@ -155,10 +155,10 @@ impl Default for SimpleSelector {
 impl fmt::Debug for SimpleSelector {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut result = String::new();
-        
+
         match self.tag_name {
             Some(ref t) => result.push_str(t),
-            None => {} 
+            None => {}
         }
 
         match self.id {
@@ -220,30 +220,6 @@ mod tests {
         let ss = Stylesheet::default();
 
         assert_eq!(ss.rules, vec![]);
-    }
-
-    /// Test full stylesheet construction.
-    #[test]
-    fn full_stylesheet() {
-        let tag = Some(String::from("div"));
-        let id = Some(String::from("identifier"));
-        let classes = vec![String::from("class1"), String::from("class2")];
-        
-        let ss1 = SimpleSelector::new(tag, id, Vec::new());
-        let ss2 = SimpleSelector::new(None, None, classes);
-
-        let sel1 = Selector::new(vec![ss1], Vec::new());
-        let sel2 = Selector::new(vec![ss2], Vec::new());
-        
-        let decl1 = Declaration::new(String::from("prop"), String::from("val"));
-        let decl2 = Declaration::new(String::from("top"), String::from("kek"));
-
-        let rule1 = Rule::new(vec![sel1, sel2], vec![decl1, decl2]);
-        let rule2 = Rule::new(vec![], vec![]);
-
-        let ss = Stylesheet::new(vec![rule1, rule2]);
-
-        // TODO assert something
     }
 
     /// Test a new rule is constructed correctly.
