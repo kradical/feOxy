@@ -1,4 +1,4 @@
-# FeOxy
+# fe_oxy
 Browser in rust
 
 For educational / enjoyment purposes.
