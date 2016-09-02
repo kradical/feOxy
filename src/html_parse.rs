@@ -265,93 +265,90 @@ fn is_valid_attr_value(c: char) -> bool {
 mod tests {
     use super::*;
     use super::is_control;
-    use dom::{AttrMap, Node, NodeType};
-
-    use std::iter::Peekable;
-    use std::str::Chars;
+    use dom::{AttrMap, ElementData, Node, NodeType};
 
     /// Test a parser is constructed correctly.
     #[test]
     fn new_parser() {
-        let (parser, mut expected_chars) = test_parser("<p>lel</p>");
+        let mut parser = HtmlParser::new("<p>lel</p>");
 
-        for character in parser.chars {
-            assert_eq!(character, expected_chars.next().unwrap());
+        for character in String::from("<p>lel</p>").chars() {
+            assert_eq!(character, parser.chars.next().unwrap());
         }
 
-        assert_eq!(None, expected_chars.peek());
+        assert_eq!(None, parser.chars.peek());
     }
 
     /// Test an empty attr value is parsed correctly.
     #[test]
     fn attr_value_empty() {
-        let (mut parser, _) = test_parser("");
+        let mut parser = HtmlParser::new("");
         assert_eq!("", parser.parse_attr_value());
     }
 
     /// Test an empty attr value is parsed correctly.
     #[test]
     fn attr_value_end() {
-        let (mut parser, _) = test_parser(">");
+        let mut parser = HtmlParser::new(">");
         assert_eq!("", parser.parse_attr_value());
     }
 
     /// Test an regular attr value is parsed correctly.
     #[test]
     fn attr_value_reg() {
-        let (mut parser, _) = test_parser("regularValue");
+        let mut parser = HtmlParser::new("regularValue");
         assert_eq!("regularValue", parser.parse_attr_value());
 
-        let (mut parser, _) = test_parser("regularValue>");
+        let mut parser = HtmlParser::new("regularValue>");
         assert_eq!("regularValue", parser.parse_attr_value());
 
-        let (mut parser, _) = test_parser("regularValue ");
+        let mut parser = HtmlParser::new("regularValue ");
         assert_eq!("regularValue", parser.parse_attr_value());
 
-        let (mut parser, _) = test_parser("regular<Value");
+        let mut parser = HtmlParser::new("regular<Value");
         assert_eq!("regular", parser.parse_attr_value());
 
-        let (mut parser, _) = test_parser("regular'Value");
+        let mut parser = HtmlParser::new("regular'Value");
         assert_eq!("regular", parser.parse_attr_value());
     }
 
     /// Test an quoted attr value is parsed correctly.
     #[test]
     fn attr_value_quote() {
-        let (mut parser, _) = test_parser("'regularValue'");
+        let mut parser = HtmlParser::new("'regularValue'");
         assert_eq!("regularValue", parser.parse_attr_value());
 
-        let (mut parser, _) = test_parser("\"regular'>< -_=Value\"");
+        let mut parser = HtmlParser::new("\"regular'>< -_=Value\"");
         assert_eq!("regular'>< -_=Value", parser.parse_attr_value());
 
-        let (mut parser, _) = test_parser("'regular\">< -_=Value'");
+        let mut parser = HtmlParser::new("'regular\">< -_=Value'");
         assert_eq!("regular\">< -_=Value", parser.parse_attr_value());
 
-        let (mut parser, _) = test_parser("\"regular\">< -_=Value\"");
+        let mut parser = HtmlParser::new("\"regular\">< -_=Value\"");
         assert_eq!("regular", parser.parse_attr_value());
 
-        let (mut parser, _) = test_parser("'regular'>< -_=Value'");
+        let mut parser = HtmlParser::new("'regular'>< -_=Value'");
         assert_eq!("regular", parser.parse_attr_value());
     }
 
     /// Test empty attributes are parsed correctly.
     #[test]
     fn attrs_empty() {
-        let (mut parser, _) = test_parser("");
+        let mut parser = HtmlParser::new("");
         assert_eq!(AttrMap::new(), parser.parse_attributes());
     }
 
     /// Test end attributes are parsed correctly.
     #[test]
     fn attrs_end() {
-        let (mut parser, _) = test_parser(">");
+        let mut parser = HtmlParser::new(">");
         assert_eq!(AttrMap::new(), parser.parse_attributes());
     }
 
     /// Test regular well formed attributes are parsed correctly.
     #[test]
     fn attrs_regular() {
-        let (mut parser, _) = test_parser("name0 name1=value1 kek name2  ='value2' name3  = \"value3\"  ");
+        let mut parser = HtmlParser::new("name0 name1=value1 kek name2  ='value2' name3  = \"value3\"  ");
         let mut expected = AttrMap::new();
         expected.insert("name0".to_string(), "".to_string());
         expected.insert("kek".to_string(), "".to_string());
@@ -365,7 +362,7 @@ mod tests {
     /// Test an invalid attribute.
     #[test]
     fn attrs_invalid() {
-        let (mut parser, _) = test_parser("name0 name1=val'ue1 name2='va l ue2'");
+        let mut parser = HtmlParser::new("name0 name1=val'ue1 name2='va l ue2'");
         let mut expected = AttrMap::new();
         expected.insert("name0".to_string(), "".to_string());
         expected.insert("name1".to_string(), "val".to_string());
@@ -377,7 +374,7 @@ mod tests {
     /// Test case insensitivity for attr names and case sensitivity for attr values.
     #[test]
     fn attrs_case() {
-        let (mut parser, _) = test_parser("NameZero NAMEone=VALUEone NAMETWO='VALUETWO' namethree=valuethree");
+        let mut parser = HtmlParser::new("NameZero NAMEone=VALUEone NAMETWO='VALUETWO' namethree=valuethree");
         let mut expected = AttrMap::new();
         expected.insert("namezero".to_string(), "".to_string());
         expected.insert("nameone".to_string(), "VALUEone".to_string());
@@ -390,7 +387,7 @@ mod tests {
     /// Test empty comment node.
     #[test]
     fn comment_empty() {
-        let (mut parser, _) = test_parser("<!---->");
+        let mut parser = HtmlParser::new("<!---->");
         let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
 
         assert_eq!(expected, parser.parse_comment_node());
@@ -399,7 +396,7 @@ mod tests {
     /// Test end comment node.
     #[test]
     fn comment_end() {
-        let (mut parser, _) = test_parser("-->");
+        let mut parser = HtmlParser::new("-->");
         let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
 
         assert_eq!(expected, parser.parse_comment_node());
@@ -408,7 +405,7 @@ mod tests {
     /// Test regular comment node.
     #[test]
     fn comment_regular() {
-        let (mut parser, _) = test_parser("--Here is a comment \n '\"<>XD\"'-->");
+        let mut parser = HtmlParser::new("--Here is a comment \n '\"<>XD\"'-->");
         let comment_content = String::from("Here is a comment \n '\"<>XD\"'");
         let expected = Node::new(NodeType::Comment(comment_content), Vec::new());
 
@@ -418,7 +415,7 @@ mod tests {
     /// Test comment node that begins with >.
     #[test]
     fn comment_invalid1() {
-        let (mut parser, _) = test_parser("-->Here is a comment \n '\"<>XD\"'-->");
+        let mut parser = HtmlParser::new("-->Here is a comment \n '\"<>XD\"'-->");
         let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
 
         assert_eq!(expected, parser.parse_comment_node());
@@ -427,7 +424,7 @@ mod tests {
     /// Test comment node that begins with ->.
     #[test]
     fn comment_invalid2() {
-        let (mut parser, _) = test_parser("--->Here is a comment \n '\"<>XD\"'-->");
+        let mut parser = HtmlParser::new("--->Here is a comment \n '\"<>XD\"'-->");
         let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
 
         assert_eq!(expected, parser.parse_comment_node());
@@ -436,7 +433,7 @@ mod tests {
     /// Test comment node that conains <!--.
     #[test]
     fn comment_invalid3() {
-        let (mut parser, _) = test_parser("--Here is a <!--comment \n '\"<>XD\"'-->");
+        let mut parser = HtmlParser::new("--Here is a <!--comment \n '\"<>XD\"'-->");
         let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
 
         assert_eq!(expected, parser.parse_comment_node());
@@ -445,10 +442,218 @@ mod tests {
     /// Test comment node that ends with <! -.
     #[test]
     fn comment_invalid4() {
-        let (mut parser, _) = test_parser("--Here is a comment \n '\"<>XD\"'<! --->");
+        let mut parser = HtmlParser::new("--Here is a comment \n '\"<>XD\"'<! --->");
         let expected = Node::new(NodeType::Comment(String::from("")), Vec::new());
 
         assert_eq!(expected, parser.parse_comment_node());
+    }
+
+    /// Test empty text node
+    #[test]
+    fn text_empty() {
+        let mut parser = HtmlParser::new("");
+        let expected = Node::new(NodeType::Text(String::from("")), Vec::new());
+
+        assert_eq!(expected, parser.parse_text_node());
+    }
+
+    /// Test text node
+    #[test]
+    fn text_end() {
+        let mut parser = HtmlParser::new("<");
+        let expected = Node::new(NodeType::Text(String::from("")), Vec::new());
+
+        assert_eq!(expected, parser.parse_text_node());
+    }
+
+    /// Test text node
+    #[test]
+    fn text_regular() {
+        let content = "Here is some text";
+        let mut parser = HtmlParser::new(content);
+        let expected = Node::new(NodeType::Text(String::from(content)), Vec::new());
+
+        assert_eq!(expected, parser.parse_text_node());
+    }
+
+    /// Test text node that contains <
+    #[test]
+    fn text_invalid() {
+        let mut parser = HtmlParser::new("Here is some <text");
+        let expected = Node::new(NodeType::Text(String::from("Here is some ")), Vec::new());
+
+        assert_eq!(expected, parser.parse_text_node());
+    }
+
+    /// Test text node that contains weird characters and whitespace
+    #[test]
+    fn text_whitespace() {
+        let mut parser = HtmlParser::new("Here  is\nsome  \t \ntext-_'\">>");
+        let expected = Node::new(NodeType::Text(String::from("Here is some text-_'\">>")), Vec::new());
+
+        assert_eq!(expected, parser.parse_text_node());
+    }
+
+    /// Test empty element node
+    #[test]
+    fn node_empty() {
+        let mut parser = HtmlParser::new("");
+        let elem = ElementData::new(String::from(""), AttrMap::new());
+        let expected = Node::new(NodeType::Element(elem), Vec::new());
+
+        assert_eq!(expected, parser.parse_node());
+    }
+
+    /// Test end of element node
+    #[test]
+    fn node_end() {
+        let mut parser = HtmlParser::new(">");
+        let elem = ElementData::new(String::from(""), AttrMap::new());
+        let expected = Node::new(NodeType::Element(elem), Vec::new());
+
+        assert_eq!(expected, parser.parse_node());
+    }
+
+    /// Test valid element node
+    #[test]
+    fn node_valid() {
+        let mut parser = HtmlParser::new("tagname attr1 attr2=value2 attr3='\"value 3\"' attr4=\"'attr 4<>'\">");
+
+        let mut attributes = AttrMap::new();
+        attributes.insert(String::from("attr1"), String::from(""));
+        attributes.insert(String::from("attr2"), String::from("value2"));
+        attributes.insert(String::from("attr3"), String::from("\"value 3\""));
+        attributes.insert(String::from("attr4"), String::from("'attr 4<>'"));
+
+        let elem = ElementData::new(String::from("tagname"), attributes);
+
+        let expected = Node::new(NodeType::Element(elem), Vec::new());
+
+        assert_eq!(expected, parser.parse_node());
+    }
+
+    /// Test invalid element node
+    #[test]
+    fn node_invalid() {
+        let mut parser = HtmlParser::new("tagname attr1 attr2=valu>e2 attr3='\"value 3\"' attr4=\"'attr 4<>'\">");
+
+        let mut attributes = AttrMap::new();
+        attributes.insert(String::from("attr1"), String::from(""));
+        attributes.insert(String::from("attr2"), String::from("valu"));
+
+        let elem = ElementData::new(String::from("tagname"), attributes);
+        let expected = Node::new(NodeType::Element(elem), Vec::new());
+
+        // Only care about top level, not children
+        assert_eq!(expected.node_type, parser.parse_node().node_type);
+    }
+
+    /// Test parse nodes
+    #[test]
+    fn nodes_empty() {
+        let mut parser = HtmlParser::new("");
+        let expected = Vec::<Node>::new();
+
+        assert_eq!(expected, parser.parse_nodes());
+    }
+
+    /// Test parse nodes
+    #[test]
+    fn nodes_regular() {
+        let content =
+            "<html>
+              <head>
+              </head>
+              <body hidden>
+                <p class=\"can't see me\">HERE IS TEXT</p>
+              </body>
+            </html";
+        let mut parser = HtmlParser::new(content);
+
+        let text = Node::new(NodeType::Text(String::from("HERE IS TEXT")), Vec::new());
+
+        let mut attrs_p = AttrMap::new();
+        attrs_p.insert(String::from("class"), String::from("can't see me"));
+        let elem_p = ElementData::new(String::from("p"), attrs_p);
+        let p = Node::new(NodeType::Element(elem_p), vec![text]);
+
+        let mut attrs_body = AttrMap::new();
+        attrs_body.insert(String::from("hidden"), String::from(""));
+        let elem_body = ElementData::new(String::from("body"), attrs_body);
+        let body = Node::new(NodeType::Element(elem_body), vec![p]);
+
+        let elem_head = ElementData::new(String::from("head"), AttrMap::new());
+        let head = Node::new(NodeType::Element(elem_head), Vec::new());
+
+        let elem_html = ElementData::new(String::from("html"), AttrMap::new());
+        let html = Node::new(NodeType::Element(elem_html), vec![head, body]);
+
+        assert_eq!(vec![html], parser.parse_nodes());
+    }
+
+    /// Test parse nodes unclosed tag (invalid)
+    #[test]
+    fn nodes_unclosed_invalid() {
+        let content =
+            "<html>
+              <head>
+              <body hidden>
+                <p class=\"can't see me\">HERE IS TEXT</p>
+              </body>
+            </html";
+        let mut parser = HtmlParser::new(content);
+
+        let text = Node::new(NodeType::Text(String::from("HERE IS TEXT")), Vec::new());
+
+        let mut attrs_p = AttrMap::new();
+        attrs_p.insert(String::from("class"), String::from("can't see me"));
+        let elem_p = ElementData::new(String::from("p"), attrs_p);
+        let p = Node::new(NodeType::Element(elem_p), vec![text]);
+
+        let mut attrs_body = AttrMap::new();
+        attrs_body.insert(String::from("hidden"), String::from(""));
+        let elem_body = ElementData::new(String::from("body"), attrs_body);
+        let body = Node::new(NodeType::Element(elem_body), vec![p]);
+
+        let elem_head = ElementData::new(String::from("head"), AttrMap::new());
+        let head = Node::new(NodeType::Element(elem_head), Vec::new());
+
+        let elem_html = ElementData::new(String::from("html"), AttrMap::new());
+        let html = Node::new(NodeType::Element(elem_html), vec![head, body]);
+
+        assert_eq!(vec![html], parser.parse_nodes());
+    }
+
+    /// Test parse nodes unclosed tag (valid)
+    #[test]
+    fn nodes_unclosed_valid() {
+        let content =
+            "<html>
+              <head>
+              </head>
+              <body hidden>
+                <img src=\"imgSrc\">
+              </body>
+            </html";
+        let mut parser = HtmlParser::new(content);
+
+        let mut attrs_img = AttrMap::new();
+        attrs_img.insert(String::from("class"), String::from("imgSrc"));
+        let elem_img = ElementData::new(String::from("img"), attrs_img);
+        let img = Node::new(NodeType::Element(elem_img), Vec::new());
+
+        let mut attrs_body = AttrMap::new();
+        attrs_body.insert(String::from("hidden"), String::from(""));
+        let elem_body = ElementData::new(String::from("body"), attrs_body);
+        let body = Node::new(NodeType::Element(elem_body), vec![img]);
+
+        let elem_head = ElementData::new(String::from("head"), AttrMap::new());
+        let head = Node::new(NodeType::Element(elem_head), Vec::new());
+
+        let elem_html = ElementData::new(String::from("html"), AttrMap::new());
+        let html = Node::new(NodeType::Element(elem_html), vec![head, body]);
+
+        assert_eq!(vec![html], parser.parse_nodes());
     }
 
     /// Test if a character is a control character
@@ -458,12 +663,5 @@ mod tests {
         assert!(is_control('\u{007F}'));
         assert!(is_control('\u{0081}'));
         assert!(!is_control(' '));
-    }
-
-    /// Utility to return a parser for tests.
-    fn test_parser<'a>(mock_html: &'a str) -> (HtmlParser, Peekable<Chars<'a>>) {
-        let parser = HtmlParser::new(mock_html);
-        let expected_chars = mock_html.chars().peekable();
-        (parser, expected_chars)
     }
 }
