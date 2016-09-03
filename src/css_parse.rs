@@ -56,7 +56,7 @@ impl<'a> CssParser<'a> {
         let mut selector = Selector::default();
 
         self.consume_while(char::is_whitespace);
-        
+
         sselector.tag_name = match self.chars.peek() {
             Some(&c) if c == '#' || c == '.' => None,
             Some(_) => Some(self.parse_identifier()),
@@ -87,7 +87,7 @@ impl<'a> CssParser<'a> {
 
         match self.chars.peek() {
             Some(&c) => {
-                if is_valid_start_ident(c) { 
+                if is_valid_start_ident(c) {
                     ident.push_str(&self.consume_while(is_valid_ident))
                 }
             },
@@ -176,10 +176,9 @@ fn is_non_ascii(c: char) -> bool {
     c >= '\u{0080}'
 }
 
-//TODO 
+//TODO
 //  -deal with comments and escaping characters
 //  -complex selectors
-//  -counter instead of destroy vec elements
 //  -cascade
 //  -specificity
 
@@ -187,25 +186,106 @@ fn is_non_ascii(c: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::iter::Peekable;
-    use std::str::Chars;
+
+    use css::{Declaration};
 
     /// Test a parser is constructed correctly.
     #[test]
-    fn new_parser() {
-        let (parser, mut expected_chars) = test_parser("p{lel:kek;}");
+    fn parser_regular() {
+        let css = "p{lel:kek;}";
+        let mut parser = CssParser::new(css);
 
-        for character in parser.chars {
-            assert_eq!(character, expected_chars.next().unwrap());
+        for character in String::from(css).chars() {
+            assert_eq!(character, parser.chars.next().unwrap());
         }
 
-        assert_eq!(None, expected_chars.peek());
+        assert_eq!(None, parser.chars.peek());
     }
 
-    /// Utility to return a parser for tests. 
-    fn test_parser<'a>(mock_css: &'a str) -> (CssParser, Peekable<Chars<'a>>) {
-        let parser = CssParser::new(mock_css);
-        let expected_chars = mock_css.chars().peekable();
-        (parser, expected_chars)
+    /// Test an empty parser is constructed correctly.
+    #[test]
+    fn parser_empty() {
+        let mut parser = CssParser::new("");
+
+        for character in String::from("").chars() {
+            assert_eq!(character, parser.chars.next().unwrap());
+        }
+
+        assert_eq!(None, parser.chars.peek());
+    }
+
+    /// Test declaration parsing
+    #[test]
+    fn declarations_empty() {
+        let mut parser = CssParser::new("");
+        assert_eq!(Vec::<Declaration>::new(), parser.parse_declarations());
+    }
+
+    /// Test declaration parsing
+    #[test]
+    fn declarations_end() {
+        let mut parser = CssParser::new("}");
+        assert_eq!(Vec::<Declaration>::new(), parser.parse_declarations());
+    }
+
+    /// Test declaration parsing
+    #[test]
+    fn declarations_regular() {
+        let mut parser = CssParser::new(
+            "color:red;
+             border-width: 1px;
+             background-color: aqua
+           }");
+        let decl_col = Declaration::new(String::from("color"), String::from("red"));
+        let decl_bw = Declaration::new(String::from("border-width"), String::from("1px"));
+        let decl_bg_col = Declaration::new(String::from("background-color"), String::from("aqua"));
+
+        let expected = vec![decl_col, decl_bw, decl_bg_col];
+        assert_eq!(expected, parser.parse_declarations());
+    }
+
+    /// Test declaration parsing
+    #[test]
+    fn declarations_invalid() {
+        let mut parser = CssParser::new(
+            "color:red;
+             border-width: 1px
+             background-color: aqua
+           }");
+        let decl_col = Declaration::new(String::from("color"), String::from("red"));
+        let decl_bg_col = Declaration::new(String::from("background-color"), String::from("aqua"));
+
+        let expected = vec![decl_col, decl_bg_col];
+        assert_eq!(expected, parser.parse_declarations());
+    }
+
+    /// Test id parsing
+    #[test]
+    fn id() {
+
+    }
+
+    /// Test identifier parsing
+    #[test]
+    fn identifier() {
+
+    }
+
+    /// Test selector parsing
+    #[test]
+    fn selector() {
+
+    }
+
+    /// Test selectors parsing (comma seperated list)
+    #[test]
+    fn selectors() {
+
+    }
+
+    /// Test stylesheet parsing
+    #[test]
+    fn stylesheet() {
+
     }
 }
