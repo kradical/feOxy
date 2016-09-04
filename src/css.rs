@@ -3,6 +3,7 @@
 use std::fmt;
 use std::default::Default;
 
+#[derive(PartialEq, Eq)]
 pub struct Stylesheet {
     pub rules: Vec<Rule>,
 }

@@ -58,16 +58,22 @@ impl<'a> CssParser<'a> {
         self.consume_while(char::is_whitespace);
 
         sselector.tag_name = match self.chars.peek() {
-            Some(&c) if c == '#' || c == '.' => None,
-            Some(_) => Some(self.parse_identifier()),
-            None => None,
+            Some(&c) if is_valid_start_ident(c) => Some(self.parse_identifier()),
+            _ => None,
         };
 
+        let mut multiple_ids = false;
         while self.chars.peek().map_or(false, |c| *c != ',' && *c != '{' && !(*c).is_whitespace()) {
             match self.chars.peek() {
                 Some(&c) if c =='#' =>  {
                     self.chars.next();
-                    sselector.id = self.parse_id();
+                    if sselector.id.is_some() || multiple_ids {
+                        sselector.id = None;
+                        multiple_ids = true;
+                        self.parse_id();
+                    } else {
+                        sselector.id = self.parse_id();
+                    }
                 },
                 Some(&c) if c == '.' => {
                     self.chars.next();
@@ -77,7 +83,10 @@ impl<'a> CssParser<'a> {
             }
         }
 
-        selector.simple.push(sselector);
+        if sselector != SimpleSelector::default() {
+            selector.simple.push(sselector);
+        }
+
         selector
     }
 
@@ -97,7 +106,7 @@ impl<'a> CssParser<'a> {
         ident
     }
 
-    /// Parse the id portion of a selector.
+    /// Wraps an identifier in an option
     fn parse_id(&mut self) -> Option<String> {
         match &self.parse_identifier()[..] {
             "" => None,
@@ -187,7 +196,7 @@ fn is_non_ascii(c: char) -> bool {
 mod tests {
     use super::*;
 
-    use css::{Declaration};
+    use css::{Declaration, Rule, Selector, SimpleSelector, Stylesheet};
 
     /// Test a parser is constructed correctly.
     #[test]
@@ -214,21 +223,21 @@ mod tests {
         assert_eq!(None, parser.chars.peek());
     }
 
-    /// Test declaration parsing
+    /// Test an empty declaration
     #[test]
     fn declarations_empty() {
         let mut parser = CssParser::new("");
         assert_eq!(Vec::<Declaration>::new(), parser.parse_declarations());
     }
 
-    /// Test declaration parsing
+    /// Test the end of a declaration
     #[test]
     fn declarations_end() {
         let mut parser = CssParser::new("}");
         assert_eq!(Vec::<Declaration>::new(), parser.parse_declarations());
     }
 
-    /// Test declaration parsing
+    /// Test a regular declaration
     #[test]
     fn declarations_regular() {
         let mut parser = CssParser::new(
@@ -244,7 +253,7 @@ mod tests {
         assert_eq!(expected, parser.parse_declarations());
     }
 
-    /// Test declaration parsing
+    /// Test declaration: semi-colon missing
     #[test]
     fn declarations_invalid() {
         let mut parser = CssParser::new(
@@ -259,33 +268,196 @@ mod tests {
         assert_eq!(expected, parser.parse_declarations());
     }
 
-    /// Test id parsing
+    /// Test empty identifier
     #[test]
-    fn id() {
-
+    fn identifier_empty() {
+        let mut parser = CssParser::new("");
+        assert_eq!(String::from(""), parser.parse_identifier());
     }
 
-    /// Test identifier parsing
+    /// Test end of identifier
     #[test]
-    fn identifier() {
-
+    fn identifier_end() {
+        let mut parser = CssParser::new(",");
+        assert_eq!(String::from(""), parser.parse_identifier());
     }
 
-    /// Test selector parsing
+    /// Test a regular identifier
     #[test]
-    fn selector() {
+    fn identifier_regular() {
+        let mut parser = CssParser::new("identifier-one,");
+        assert_eq!(String::from("identifier-one"), parser.parse_identifier());
+    }
 
+    /// Test a multi-section identifier
+    #[test]
+    fn identifier_long() {
+        let mut parser = CssParser::new("identifier-one.class-one,");
+        assert_eq!(String::from("identifier-one"), parser.parse_identifier());
+    }
+
+    /// Test an identifier beginning with -
+    #[test]
+    fn identifier_invalid() {
+        let mut parser = CssParser::new("-identifier-one.class-one,");
+        assert_eq!(String::from(""), parser.parse_identifier());
+    }
+
+    /// Test whitespace after the identifier
+    #[test]
+    fn identifier_whitespace() {
+        let mut parser = CssParser::new("identifier p#id-one.class-one,");
+        assert_eq!(String::from("identifier"), parser.parse_identifier());
+    }
+
+    /// Test an empty selector
+    #[test]
+    fn selector_empty() {
+        let mut parser = CssParser::new("");
+        assert_eq!(Selector::default(), parser.parse_selector());
+    }
+
+    /// Test selector parsing with a ,
+    #[test]
+    fn selector_end1() {
+        let mut parser = CssParser::new(",");
+        assert_eq!(Selector::default(), parser.parse_selector());
+    }
+
+    /// Test selector parsing with a {
+    #[test]
+    fn selector_end2() {
+        let mut parser = CssParser::new("{");
+        assert_eq!(Selector::default(), parser.parse_selector());
+    }
+
+    /// Test a regular selector
+    #[test]
+    fn selector_regular() {
+        let mut parser = CssParser::new("p#id-one.class-one");
+
+        let ex_ss = SimpleSelector::new(Some(String::from("p")), Some(String::from("id-one")), vec![String::from("class-one")]);
+        let expected = Selector::new(vec![ex_ss], vec![]);
+
+        assert_eq!(expected, parser.parse_selector());
+    }
+
+    /// Test multiple classes in a selector
+    #[test]
+    fn selector_multi_class() {
+        let mut parser = CssParser::new(".class1.class2.class3");
+        let ex_ss = SimpleSelector::new(None, None, vec![String::from("class1"), String::from("class2"), String::from("class3")]);
+        let expected = Selector::new(vec![ex_ss], vec![]);
+        assert_eq!(expected, parser.parse_selector());
+    }
+
+    /// Test multiple id's in a selector
+    #[test]
+    fn selector_multi_id() {
+        let mut parser = CssParser::new("#id1#id2#id3");
+        assert_eq!(Selector::default(), parser.parse_selector());
+    }
+
+    /// Test an invalid selector
+    #[test]
+    #[should_panic]
+    fn selector_invalid() {
+        let mut parser = CssParser::new("-p#id-one.class-one");
+        parser.parse_selector();
     }
 
     /// Test selectors parsing (comma seperated list)
     #[test]
-    fn selectors() {
+    fn selectors_empty() {
+        let mut parser = CssParser::new("");
+        assert_eq!(Vec::<Selector>::new(), parser.parse_selectors());
+    }
 
+    /// Test selectors parsing (comma seperated list)
+    #[test]
+    fn selectors_end() {
+        let mut parser = CssParser::new("{");
+        assert_eq!(Vec::<Selector>::new(), parser.parse_selectors());
+    }
+
+    /// Test selectors parsing (comma seperated list)
+    #[test]
+    fn selectors_regular() {
+        let mut parser = CssParser::new("tag1, #id1, .class1, _tag-2#id-2.class-2");
+
+        let ssel1 = SimpleSelector::new(Some(String::from("tag1")), None, vec![]);
+        let sel1 =  Selector::new(vec![ssel1], vec![]);
+
+        let ssel2 = SimpleSelector::new(None, Some(String::from("id1")), vec![]);
+        let sel2 =  Selector::new(vec![ssel2], vec![]);
+
+        let ssel3 = SimpleSelector::new(None, None, vec![String::from("class1")]);
+        let sel3 =  Selector::new(vec![ssel3], vec![]);
+
+        let ssel4 = SimpleSelector::new(Some(String::from("_tag-2")), Some(String::from("id-2")), vec![String::from("class-2")]);
+        let sel4 =  Selector::new(vec![ssel4], vec![]);
+
+
+        assert_eq!(vec![sel1, sel2, sel3, sel4], parser.parse_selectors());
+    }
+
+    /// Test selectors parsing (comma seperated list one invalid)
+    #[test]
+    fn selectors_regular_one_invalid() {
+        let mut parser = CssParser::new("tag1, #id1, .-class1, _tag-2#id-2.class-2");
+
+        let ssel1 = SimpleSelector::new(Some(String::from("tag1")), None, vec![]);
+        let sel1 =  Selector::new(vec![ssel1], vec![]);
+
+        let ssel2 = SimpleSelector::new(None, Some(String::from("id1")), vec![]);
+        let sel2 =  Selector::new(vec![ssel2], vec![]);
+
+        let ssel3 = SimpleSelector::new(Some(String::from("_tag-2")), Some(String::from("id-2")), vec![String::from("class-2")]);
+        let sel3 =  Selector::new(vec![ssel3], vec![]);
+
+
+        assert_eq!(vec![sel1, sel2, sel3], parser.parse_selectors());
+    }
+
+    /// Test selectors parsing (comma seperated list all invalid)
+    #[test]
+    fn selectors_regular_all_invalid() {
+        let mut parser = CssParser::new("-tag1, #-id1, .-class1, -_tag-2#id-2.class-2");
+        assert_eq!(Vec::<Selector>::new(), parser.parse_selectors());
     }
 
     /// Test stylesheet parsing
     #[test]
-    fn stylesheet() {
+    fn stylesheet_empty() {
+        let mut parser = CssParser::new("");
+        assert_eq!(Stylesheet::default(), parser.parse_stylesheet())
+    }
 
+    /// Test stylesheet parsing
+    #[test]
+    fn stylesheet_regular() {
+        let mut parser = CssParser::new(
+            "p {
+                 color: red;
+             }
+             body#id1.class1,
+             .class2.class3.class4 {
+                 border: solid black 1px;
+                 background-color: aqua
+             }");
+        let p_ss = SimpleSelector::new(Some(String::from("p")), None, vec![]);
+        let p = Selector::new(vec![p_ss], vec![]);
+        let p_decl = Declaration::new(String::from("color"), String::from("red"));
+        let rule1 = Rule::new(vec![p], vec![p_decl]);
+
+        let body_ss1 = SimpleSelector::new(Some(String::from("body")), Some(String::from("id1")), vec![String::from("class1")]);
+        let body1 = Selector::new(vec![body_ss1], vec![]);
+        let body_ss2 = SimpleSelector::new(None, None, vec![String::from("class2"), String::from("class3"), String::from("class4")]);
+        let body2 = Selector::new(vec![body_ss2], vec![]);
+        let body_decl1 = Declaration::new(String::from("border"), String::from("solid black 1px"));
+        let body_decl2 = Declaration::new(String::from("background-color"), String::from("aqua"));
+        let rule2 = Rule::new(vec![body1, body2], vec![body_decl1, body_decl2]);
+
+        assert_eq!(Stylesheet::new(vec![rule1, rule2]), parser.parse_stylesheet())
     }
 }

@@ -256,6 +256,7 @@ fn is_valid_attr_value(c: char) -> bool {
 }
 
 //TODO
+//  -when parsing id's use the first id value
 //  -check and consume function that takes a condition
 //  -script tags/link tags
 //  -parse character references
