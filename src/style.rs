@@ -27,7 +27,7 @@ impl<'a> StyledNode<'a> {
     /// ss: The stylesheet being applied.
     pub fn new(node: &'a Node, ss: &'a Stylesheet) -> StyledNode<'a> {
         // recursively make a styletree without any styles
-        // then apply rules to the tree 
+        // then apply rules to the tree
         let mut style_children = Vec::new();
 
         for child in &node.children {
@@ -75,7 +75,7 @@ impl<'a> StyledNode<'a> {
         self.styles.get(name)
     }
 
-    /// Return the value of display property of the current node. 
+    /// Return the value of display property of the current node.
     pub fn get_display(&self) -> Display {
         match self.value("display") {
             Some(s) => match *s {
@@ -158,7 +158,7 @@ fn selector_matches(elem: &ElementData, sel: &Selector) -> bool {
 ///
 /// n: The node of the style tree to print.
 /// indent_size: the amount to indent the current node.
-/// 
+///
 /// To pretty_print the full style tree pass the root node and 0
 pub fn pretty_print(n: &StyledNode, indent_size: usize) {
     let indent = (0..indent_size).map(|_| " ").collect::<String>();
@@ -170,7 +170,7 @@ pub fn pretty_print(n: &StyledNode, indent_size: usize) {
     }
 }
 
-//TODO 
+//TODO
 //  -make things case insensitive.
 //  -parse element attributes into styles
 //  -parse <style> elements into style sheets
@@ -186,7 +186,19 @@ mod tests {
 
     /// Test
     #[test]
-    fn it_works() {
+    fn simple_match_tag() {
+
+    }
+
+    /// Test
+    #[test]
+    fn simple_match_id() {
+
+    }
+
+    /// Test
+    #[test]
+    fn simple_match_class() {
 
     }
 }

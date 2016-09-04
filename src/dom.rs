@@ -11,14 +11,14 @@ pub struct Node {
     pub node_type: NodeType,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum NodeType {
     Text(String),
     Element(ElementData),
     Comment(String),
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct ElementData {
     pub tag_name: String,
     attributes: AttrMap,
@@ -65,12 +65,12 @@ impl ElementData {
             Some(s) => s.split(' ').collect(),
             None => HashSet::new(),
         }
-    } 
+    }
 }
 impl fmt::Debug for ElementData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut attributes_string = String::new();
-        
+
         for (attr, value) in self.attributes.iter() {
             attributes_string.push_str(&format!(" {}=\"{}\"", attr, value));
         }
@@ -91,7 +91,7 @@ impl fmt::Debug for NodeType {
 ///
 /// n: The node of the html tree to print;
 /// indent_size: the amount to indent the current node
-/// 
+///
 /// To pretty_print the full dom pass the root node and 0
 pub fn pretty_print(n: &Node, indent_size: usize) {
     let indent = (0..indent_size).map(|_| " ").collect::<String>();
@@ -148,7 +148,7 @@ mod tests {
 
         let expected_str = String::from("identifier");
         let expected = Some(&expected_str);
-        
+
         assert_eq!(expected, elem.get_id());
     }
 
@@ -179,7 +179,7 @@ mod tests {
 
         let expected_str = String::from("identifier2");
         let expected = Some(&expected_str);
-        
+
         assert_eq!(expected, elem.get_id());
     }
 
@@ -189,14 +189,14 @@ mod tests {
         let tagname = String::from("has_class");
         let class_name = String::from("class");
         let class_value = String::from("a");
-        
+
         let mut attrs = HashMap::new();
         attrs.insert(class_name, class_value);
         let elem = ElementData::new(tagname, attrs);
 
         let mut expected = HashSet::new();
         expected.insert("a");
-        
+
         assert_eq!(expected, elem.get_classes());
     }
 

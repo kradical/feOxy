@@ -6,32 +6,33 @@ use std::fs::File;
 use std::io::{Read, BufReader};
 
 fn main() {
-    let nodes = test_html();
-    for node in nodes.iter() {
-        dom::pretty_print(node, 0);
-    }
-    let ref node = nodes[0];
-
-    println!("");
-    let ss = test_css();
-    print!("{:?}", ss);
-
-    println!("");
-    let style_tree_root = style::StyledNode::new(&node, &ss);
-    style::pretty_print(&style_tree_root, 0);
-
-
-    println!("");
-    let mut viewport = layout::Dimensions::default();
-    viewport.content.width = 800.0;
-    viewport.content.height = 600.0;
-    let layout_tree = layout::layout_tree(&style_tree_root, viewport);
-    layout::pretty_print(&layout_tree);
+    test_html();
+    //let nodes = test_html();
+    // for node in nodes.iter() {
+    //     dom::pretty_print(node, 0);
+    // }
+    // let ref node = nodes[0];
+    //
+    // println!("");
+    // let ss = test_css();
+    // print!("{:?}", ss);
+    //
+    // println!("");
+    // let style_tree_root = style::StyledNode::new(&node, &ss);
+    // style::pretty_print(&style_tree_root, 0);
+    //
+    //
+    // println!("");
+    // let mut viewport = layout::Dimensions::default();
+    // viewport.content.width = 800.0;
+    // viewport.content.height = 600.0;
+    // let layout_tree = layout::layout_tree(&style_tree_root, viewport);
+    // layout::pretty_print(&layout_tree);
 }
 
 fn test_html() -> Vec<dom::Node> {
     let mut path = env::current_dir().unwrap();
-    path.push("src/parserTestFiles/ex3.html");
+    path.push("src/parserTestFiles/exCustom.html");
 
     let mut file_reader = match File::open(&path) {
         Ok(f) => BufReader::new(f),

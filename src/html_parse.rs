@@ -7,6 +7,7 @@ use std::str::Chars;
 
 pub struct HtmlParser<'a> {
     chars: Peekable<Chars<'a>>,
+    node_stack: Vec<String>,
 }
 
 impl<'a> HtmlParser<'a> {
@@ -14,7 +15,10 @@ impl<'a> HtmlParser<'a> {
     ///
     /// full_html: the complete html to parse.
     pub fn new(full_html: &str) -> HtmlParser {
-        HtmlParser { chars: full_html.chars().peekable() }
+        HtmlParser {
+            chars: full_html.chars().peekable(),
+            node_stack: Vec::new(),
+        }
     }
 
     /// Entry point to parsing html, recursively parses html nodes.
@@ -27,26 +31,44 @@ impl<'a> HtmlParser<'a> {
             if self.chars.peek().map_or(false, |c| *c == '<') {
                 self.chars.next();
                 if self.chars.peek().map_or(false, |c| *c == '/') {
+                    self.chars.next();
+                    self.consume_while(char::is_whitespace);
+
+                    let close_tag_name = self.consume_while(is_valid_tag_name);
+
+                    // clean up in case there is whitespace or weird things
                     self.consume_while(|x| x != '>');
                     self.chars.next();
+
+                    self.node_stack.push(close_tag_name);
                     break;
                 } else if self.chars.peek().map_or(false, |c| *c == '!') {
                     self.chars.next();
                     nodes.push(self.parse_comment_node());
                 } else {
-                    nodes.push(self.parse_node());
+                    let node = self.parse_node();
+
+                    match node.node_type {
+                        NodeType::Element(ref e) => {
+                            print!("{} {}", e.tag_name, self.node_stack.pop().unwrap_or(String::from("kek")));
+                        },
+                        _ => {}
+                    }
+
+                    nodes.push(node);
                 }
             } else {
                 nodes.push(self.parse_text_node());
             }
         }
+        println!("");
         nodes
     }
 
     /// Parse a single html node and recursively call parse_nodes on children.
     fn parse_node(&mut self) -> Node {
         // is an valid tagname
-        let tagname = self.consume_while(|x| x.is_digit(36));
+        let tagname = self.consume_while(is_valid_tag_name);
         let attributes = self.parse_attributes();
 
         let elem = ElementData::new(tagname, attributes);
@@ -222,6 +244,11 @@ impl<'a> HtmlParser<'a> {
 
         result
     }
+}
+
+/// Utility to check if a character can be used for a tag name.
+fn is_valid_tag_name(ch: char) -> bool {
+    ch.is_digit(36)
 }
 
 /// Utility to check if a character can be used for an attribute name.
