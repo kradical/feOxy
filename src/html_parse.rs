@@ -7,7 +7,7 @@ use std::str::Chars;
 
 pub struct HtmlParser<'a> {
     chars: Peekable<Chars<'a>>,
-    node_stack: Vec<String>,
+    node_q: Vec<String>,
 }
 
 impl<'a> HtmlParser<'a> {
@@ -17,7 +17,7 @@ impl<'a> HtmlParser<'a> {
     pub fn new(full_html: &str) -> HtmlParser {
         HtmlParser {
             chars: full_html.chars().peekable(),
-            node_stack: Vec::new(),
+            node_q: Vec::new(),
         }
     }
 
@@ -40,27 +40,31 @@ impl<'a> HtmlParser<'a> {
                     self.consume_while(|x| x != '>');
                     self.chars.next();
 
-                    self.node_stack.push(close_tag_name);
+                    self.node_q.push(close_tag_name);
                     break;
                 } else if self.chars.peek().map_or(false, |c| *c == '!') {
                     self.chars.next();
                     nodes.push(self.parse_comment_node());
                 } else {
-                    let node = self.parse_node();
+                    let mut node = self.parse_node();
+                    let insert_index = nodes.len();
 
+                    // handles an erroneously unclosed tag
                     match node.node_type {
                         NodeType::Element(ref e) => {
-                            if e.tag_name != self.node_stack.pop().unwrap_or(String::from("#")) {
-                                println!("{:?}", node.children);
-                                // move all the children to be siblings
-                                //  -remove from parent vector
-                                //  -push to "nodes" vector
+                            if self.node_q.len() > 0 {
+                                let assumed_tag = self.node_q.remove(0); 
+
+                                if e.tag_name != assumed_tag {
+                                    nodes.append(&mut node.children);
+                                    self.node_q.insert(0, assumed_tag);
+                                }
                             }
                         },
                         _ => {}
                     }
 
-                    nodes.push(node);
+                    nodes.insert(insert_index, node);
                 }
             } else {
                 nodes.push(self.parse_text_node());
@@ -670,7 +674,7 @@ mod tests {
         let mut parser = HtmlParser::new(content);
 
         let mut attrs_img = AttrMap::new();
-        attrs_img.insert(String::from("class"), String::from("imgSrc"));
+        attrs_img.insert(String::from("src"), String::from("imgSrc"));
         let elem_img = ElementData::new(String::from("img"), attrs_img);
         let img = Node::new(NodeType::Element(elem_img), Vec::new());
 

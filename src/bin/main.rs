@@ -6,11 +6,10 @@ use std::fs::File;
 use std::io::{Read, BufReader};
 
 fn main() {
-    test_html();
-    //let nodes = test_html();
-    // for node in nodes.iter() {
-    //     dom::pretty_print(node, 0);
-    // }
+    let nodes = test_html();
+    for node in nodes.iter() {
+        dom::pretty_print(node, 0);
+    }
     // let ref node = nodes[0];
     //
     // println!("");
