@@ -50,7 +50,12 @@ impl<'a> HtmlParser<'a> {
 
                     match node.node_type {
                         NodeType::Element(ref e) => {
-                            print!("{} {}", e.tag_name, self.node_stack.pop().unwrap_or(String::from("kek")));
+                            if e.tag_name != self.node_stack.pop().unwrap_or(String::from("#")) {
+                                println!("{:?}", node.children);
+                                // move all the children to be siblings
+                                //  -remove from parent vector
+                                //  -push to "nodes" vector
+                            }
                         },
                         _ => {}
                     }
@@ -61,7 +66,6 @@ impl<'a> HtmlParser<'a> {
                 nodes.push(self.parse_text_node());
             }
         }
-        println!("");
         nodes
     }
 
