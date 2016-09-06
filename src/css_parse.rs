@@ -126,14 +126,17 @@ impl<'a> CssParser<'a> {
             self.chars.next();
             self.consume_while(char::is_whitespace);
 
-            //TODO fix for correctness
             let value = self.consume_while(|x| x != ';' && x != '\n' && x != '}');
             let declaration = Declaration::new(property, value);
 
-            declarations.push(declaration);
-
             if self.chars.peek().map_or(false, |c| *c == ';') {
+                declarations.push(declaration);
                 self.chars.next();
+            } else {
+                self.consume_while(char::is_whitespace);
+                if self.chars.peek().map_or(false, |c| *c == '}') {
+                    declarations.push(declaration);
+                }
             }
             self.consume_while(char::is_whitespace);
         }
