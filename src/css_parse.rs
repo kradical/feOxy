@@ -38,7 +38,10 @@ impl<'a> CssParser<'a> {
 
         while self.chars.peek().map_or(false, |c| *c != '{') {
             let selector = self.parse_selector();
-            selectors.push(selector);
+
+            if selector != Selector::default() {
+                selectors.push(selector);
+            }
 
             self.consume_while(char::is_whitespace);
             if self.chars.peek().map_or(false, |c| *c == ',') {
@@ -77,9 +80,16 @@ impl<'a> CssParser<'a> {
                 },
                 Some(&c) if c == '.' => {
                     self.chars.next();
-                    sselector.classes.push(self.parse_identifier());
+                    let class_name = self.parse_identifier();
+
+                    if class_name != String::from("") {
+                        sselector.classes.push(class_name);
+                    }
                 },
-                _ => panic!("INVALID STATE IN parse_selector"), // TODO handle css errors
+                _ => {
+                    // consume invalid selector
+                    self.consume_while(|c| c != ',' && c != '{');
+                },
             }
         }
 
@@ -363,10 +373,9 @@ mod tests {
 
     /// Test an invalid selector
     #[test]
-    #[should_panic]
     fn selector_invalid() {
         let mut parser = CssParser::new("-p#id-one.class-one");
-        parser.parse_selector();
+        assert_eq!(Selector::default(), parser.parse_selector());
     }
 
     /// Test selectors parsing (comma seperated list)
