@@ -4,7 +4,7 @@ use style::{StyledNode, Display};
 use std::fmt;
 
 pub struct LayoutBox<'a> {
-    dimensions: Dimensions,
+    pub dimensions: Dimensions,
     box_type: BoxType<'a>,
     pub children: Vec<LayoutBox<'a>>,
 }
@@ -19,24 +19,24 @@ pub enum BoxType<'a> {
 pub struct Dimensions {
     pub content: Rect,
     padding: EdgeSizes,
-    border: EdgeSizes,
+    pub border: EdgeSizes,
     margin: EdgeSizes,
 }
 
 #[derive(Clone, Copy, Default)]
 pub struct Rect {
-    x: f32,
-    y: f32,
+    pub x: f32,
+    pub y: f32,
     pub width: f32,
     pub height: f32,
 }
 
 #[derive(Clone, Copy, Default)]
-struct EdgeSizes {
-    left: f32,
-    right: f32,
-    top: f32,
-    bottom: f32,
+pub struct EdgeSizes {
+    pub left: f32,
+    pub right: f32,
+    pub top: f32,
+    pub bottom: f32,
 }
 
 impl<'a> LayoutBox<'a> {
@@ -92,11 +92,11 @@ impl<'a> LayoutBox<'a> {
     fn calculate_width(&mut self, b_box: Dimensions) {
         let style = self.get_style_node();
         let d = &mut self.dimensions;
-        
+
         let mut width: f32 = style.value_or("width", 0.0);
         let mut margin_l: f32 = style.value_or("margin-left", 0.0);
         let mut margin_r: f32 = style.value_or("margin-right", 0.0);
-        
+
         d.border.left = style.value_or("border-left-width", 0.0);
         d.border.right = style.value_or("border-right-width", 0.0);
         d.padding.left = style.value_or("padding-left", 0.0);
@@ -185,7 +185,7 @@ impl<'a> LayoutBox<'a> {
 impl<'a> fmt::Debug for LayoutBox<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "type:\n  {:?}\n{:?}\n", self.box_type, self.dimensions)
-    } 
+    }
 }
 
 impl Dimensions {
@@ -195,7 +195,7 @@ impl Dimensions {
     }
 
     /// Updates content size to include borders.
-    fn border_box(&self) -> Rect {
+    pub fn border_box(&self) -> Rect {
         self.padding_box().expanded(self.border)
     }
 
@@ -247,12 +247,12 @@ impl<'a> fmt::Debug for BoxType<'a> {
         };
 
         write!(f, "{}", display_type)
-    } 
+    }
 }
 
 /// Entry point to create a layout tree.
 ///
-/// root: The root of the style tree to layout. 
+/// root: The root of the style tree to layout.
 /// containing_block: The window or viewport.
 pub fn layout_tree<'a>(root: &'a StyledNode<'a>, mut containing_block: Dimensions) -> LayoutBox<'a> {
     // The layout algorithm expects the container height to start at 0.

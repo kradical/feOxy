@@ -1,5 +1,5 @@
 extern crate fe_oxy;
-use fe_oxy::{dom, css, style, layout, html_parse, css_parse};
+use fe_oxy::{dom, css, style, layout, render, html_parse, css_parse};
 
 use std::env;
 use std::fs::File;
@@ -10,23 +10,25 @@ fn main() {
     for node in nodes.iter() {
         dom::pretty_print(node, 0);
     }
-    // let ref node = nodes[0];
-    //
-    // println!("");
-    // let ss = test_css();
-    // print!("{:?}", ss);
-    //
-    // println!("");
-    // let style_tree_root = style::StyledNode::new(&node, &ss);
-    // style::pretty_print(&style_tree_root, 0);
-    //
-    //
-    // println!("");
-    // let mut viewport = layout::Dimensions::default();
-    // viewport.content.width = 800.0;
-    // viewport.content.height = 600.0;
-    // let layout_tree = layout::layout_tree(&style_tree_root, viewport);
-    // layout::pretty_print(&layout_tree);
+    let ref node = nodes[0];
+
+    println!("");
+    let ss = test_css();
+    print!("{:?}", ss);
+
+    println!("");
+    let style_tree_root = style::StyledNode::new(&node, &ss);
+    style::pretty_print(&style_tree_root, 0);
+
+
+    println!("");
+    let mut viewport = layout::Dimensions::default();
+    viewport.content.width = 800.0;
+    viewport.content.height = 600.0;
+    let layout_tree = layout::layout_tree(&style_tree_root, viewport);
+    layout::pretty_print(&layout_tree);
+
+    render::build_display_commands(&layout_tree);
 }
 
 fn test_html() -> Vec<dom::Node> {
