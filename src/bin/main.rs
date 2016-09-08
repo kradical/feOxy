@@ -29,11 +29,12 @@ fn main() {
     layout::pretty_print(&layout_tree);
 
     render::build_display_commands(&layout_tree);
+    render::render_triangle();
 }
 
 fn test_html() -> Vec<dom::Node> {
     let mut path = env::current_dir().unwrap();
-    path.push("src/parserTestFiles/exCustom.html");
+    path.push("tests/parserTestFiles/exCustom.html");
 
     let mut file_reader = match File::open(&path) {
         Ok(f) => BufReader::new(f),
@@ -50,7 +51,7 @@ fn test_html() -> Vec<dom::Node> {
 
 fn test_css() -> css::Stylesheet {
     let mut path = env::current_dir().unwrap();
-    path.push("src/parserTestFiles/ex1.css");
+    path.push("tests/parserTestFiles/ex1.css");
 
     let mut file_reader = match File::open(&path) {
         Ok(f) => BufReader::new(f),
@@ -66,4 +67,4 @@ fn test_css() -> css::Stylesheet {
 }
 
 // TODO change this into a binary crate consumer of the rest of the code
-// TODO change the rest of the code into a library crate
+// TODO change the rest of the code into library crates

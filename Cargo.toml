@@ -7,3 +7,8 @@ authors = ["Konrad <konrad_here@hotmail.com>"]
 name = "main"
 doc = false
 test = false
+
+[dependencies]
+gfx = "*"
+gfx_window_glutin = "*"
+glutin = "*"
