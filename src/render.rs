@@ -10,7 +10,8 @@ use glutin;
 use gfx::traits::FactoryExt;
 use gfx::Device;
 
-type DepthFormat = gfx::format::DepthStencil;
+pub type DepthFormat = gfx::format::DepthStencil;
+pub type ColorFormat = gfx::format::Rgba8;
 
 gfx_defines!{
     vertex Vertex {
@@ -20,26 +21,20 @@ gfx_defines!{
 
     pipeline pipe {
         vbuf: gfx::VertexBuffer<Vertex> = (),
-        out: gfx::RenderTarget<gfx::format::Rgba8> = "Target0",
+        out: gfx::RenderTarget<ColorFormat> = "Target0",
     }
 }
 
-const TRIANGLE: [Vertex; 3] = [
-    Vertex { pos: [-0.5, -0.5], color: [1.0, 0.0, 0.0] },
-    Vertex { pos: [0.5, -0.5], color: [0.0, 1.0, 0.0] },
-    Vertex { pos: [0.0, 0.5], color: [0.0, 0.0, 1.0] },
-];
+const CLEAR_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
-const CLEAR_COLOR: [f32; 4] = [0.1, 0.2, 0.3, 1.0];
-
-pub fn render_triangle() {
+pub fn render_loop() {
     let builder = glutin::WindowBuilder::new()
-        .with_title(String::from("TRIANGLE"))
+        .with_title(String::from("SQUARE"))
         .with_dimensions(1024, 768)
         .with_vsync();
 
     let (window, mut device, mut factory, main_color, _main_depth) =
-        gfx_window_glutin::init::<gfx::format::Rgba8, DepthFormat>(builder);
+        gfx_window_glutin::init::<ColorFormat, DepthFormat>(builder);
 
     let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 
@@ -49,7 +44,9 @@ pub fn render_triangle() {
         pipe::new()
     ).unwrap();
 
-    let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&TRIANGLE, ());
+    let (vertices, index_data) = render_commands(vec![DisplayCommand::SolidRect(String::new(), Rect {x:1.0, y:1.0, height:1.0, width:1.0})]);
+
+    let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&vertices, &index_data[..]);
 
     let data = pipe::Data {
         vbuf: vertex_buffer,
@@ -71,6 +68,36 @@ pub fn render_triangle() {
         window.swap_buffers().unwrap();
         device.cleanup();
     }
+}
+
+fn render_commands(command_list: DisplayList) -> (Vec<Vertex>, Vec<u16>) {
+    let mut vertices = Vec::new();
+    let mut index_data = Vec::new();
+
+    for command in command_list {
+        match command {
+            DisplayCommand::SolidRect(color, rect) => {
+                let (mut v, mut i) = render_rect(color, rect);
+                vertices.append(&mut v);
+                index_data.append(&mut i);
+            },
+        }
+    }
+    return (vertices, index_data);
+}
+
+fn render_rect(color: String, rect: Rect) -> (Vec<Vertex>, Vec<u16>) {
+    let vertices = vec![
+        Vertex { pos: [0.5, -0.5], color: [0.5, 0.0, 0.0] },
+        Vertex { pos: [-0.5, -0.5], color: [0.5, 0.0, 0.0] },
+        Vertex { pos: [-0.5, 0.5], color: [0.5, 0.0, 0.0] },
+        Vertex { pos: [0.5, 0.5], color: [0.5, 0.0, 0.0] },
+    ];
+    let index_data = vec![
+        0, 1, 2, 2, 3, 0,
+    ];
+
+    return (vertices, index_data);
 }
 
 use layout::{LayoutBox, Rect};

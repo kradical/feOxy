@@ -29,7 +29,7 @@ fn main() {
     layout::pretty_print(&layout_tree);
 
     render::build_display_commands(&layout_tree);
-    render::render_triangle();
+    render::render_loop();
 }
 
 fn test_html() -> Vec<dom::Node> {
