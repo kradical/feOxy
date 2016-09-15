@@ -13,6 +13,10 @@ use gfx::Device;
 pub type DepthFormat = gfx::format::DepthStencil;
 pub type ColorFormat = gfx::format::Rgba8;
 
+// TODO integrate with layout module for screen resizing
+const SCREEN_WIDTH: usize = 1024;
+const SCREEN_HEIGHT: usize = 768;
+
 gfx_defines!{
     vertex Vertex {
         pos: [f32; 2] = "a_Pos",
@@ -29,8 +33,8 @@ const CLEAR_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
 pub fn render_loop() {
     let builder = glutin::WindowBuilder::new()
-        .with_title(String::from("SQUARE"))
-        .with_dimensions(1024, 768)
+        .with_title(String::from("feOxy"))
+        .with_dimensions(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)
         .with_vsync();
 
     let (window, mut device, mut factory, main_color, _main_depth) =
@@ -44,7 +48,11 @@ pub fn render_loop() {
         pipe::new()
     ).unwrap();
 
-    let (vertices, index_data) = render_commands(vec![DisplayCommand::SolidRect(String::new(), Rect {x:1.0, y:1.0, height:1.0, width:1.0})]);
+    let (vertices, index_data) = render_commands(vec![
+        DisplayCommand::SolidRect(String::from("red"), Rect {x: 100.0, y: 100.0, height: 100.0, width: 100.0 }),
+        DisplayCommand::SolidRect(String::from("green"), Rect {x: 0.0, y: 100.0, height: 100.0, width: 100.0 }),
+        DisplayCommand::SolidRect(String::from("blue"), Rect {x: 100.0, y: 0.0, height: 100.0, width: 100.0 })
+    ]);
 
     let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&vertices, &index_data[..]);
 
@@ -77,7 +85,15 @@ fn render_commands(command_list: DisplayList) -> (Vec<Vertex>, Vec<u16>) {
     for command in command_list {
         match command {
             DisplayCommand::SolidRect(color, rect) => {
-                let (mut v, mut i) = render_rect(color, rect);
+                let c;
+                if color == "red" {
+                    c = [0.5, 0.0, 0.0];
+                } else if color == "green" {
+                    c = [0.0, 0.5, 0.0];
+                } else {
+                    c = [0.0, 0.0, 0.5];
+                };
+                let (mut v, mut i) = render_rect(&c, rect);
                 vertices.append(&mut v);
                 index_data.append(&mut i);
             },
@@ -86,18 +102,42 @@ fn render_commands(command_list: DisplayList) -> (Vec<Vertex>, Vec<u16>) {
     return (vertices, index_data);
 }
 
-fn render_rect(color: String, rect: Rect) -> (Vec<Vertex>, Vec<u16>) {
+fn render_rect(c: &[f32; 3], rect: Rect) -> (Vec<Vertex>, Vec<u16>) {
+    println!("{:?}", rect);
+    let (x, y, h, w) = transform_rect(rect);
     let vertices = vec![
-        Vertex { pos: [0.5, -0.5], color: [0.5, 0.0, 0.0] },
-        Vertex { pos: [-0.5, -0.5], color: [0.5, 0.0, 0.0] },
-        Vertex { pos: [-0.5, 0.5], color: [0.5, 0.0, 0.0] },
-        Vertex { pos: [0.5, 0.5], color: [0.5, 0.0, 0.0] },
+        Vertex { pos: [x + w, y], color: *c },
+        Vertex { pos: [x, y], color: *c },
+        Vertex { pos: [x, y + h], color: *c },
+        Vertex { pos: [x + w, y + h], color: *c },
     ];
     let index_data = vec![
         0, 1, 2, 2, 3, 0,
+        4, 5, 6, 6, 7, 4,
+        8, 9, 10, 10, 11, 8,
     ];
 
     return (vertices, index_data);
+}
+
+/// Transforms a rect into gfx coordinates based on screen size.
+///
+/// layout_box coord system:    gfx obj coord system:  gfx screen coord system:
+///  (x, y)    (x+w, y)           (x, y+h) (x+w, y+h)     (-1, 1)    (1,1)
+///     +-------+                     +-------+             +-------+
+///     |       |                     |       |             |       |
+///     |       |                     |       |             |       |
+///     +-------+                     +-------+             +-------+
+///  (x, y+h) (x+w, y+h)           (x, y)  (x+w, y)     (-1, -1)  (1, -1)
+fn transform_rect(rect: Rect) -> (f32, f32, f32, f32) {
+    let w = rect.width / SCREEN_WIDTH as f32 * 2.0;
+    let h = rect.height / SCREEN_HEIGHT as f32 * 2.0;
+    let x = rect.x / SCREEN_WIDTH as f32 * 2.0 - 1.0;
+    let y = -(rect.y / SCREEN_HEIGHT as f32 * 2.0 - 1.0 + h);
+
+    println!("x: {}, y: {}, w: {}, h: {}", x, y, w, h);
+
+    (x, y, h, w)
 }
 
 use layout::{LayoutBox, Rect};
