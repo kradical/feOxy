@@ -51,7 +51,8 @@ pub fn render_loop() {
     let (vertices, index_data) = render_commands(vec![
         DisplayCommand::SolidRect(String::from("red"), Rect {x: 100.0, y: 100.0, height: 100.0, width: 100.0 }),
         DisplayCommand::SolidRect(String::from("green"), Rect {x: 0.0, y: 100.0, height: 100.0, width: 100.0 }),
-        DisplayCommand::SolidRect(String::from("blue"), Rect {x: 100.0, y: 0.0, height: 100.0, width: 100.0 })
+        DisplayCommand::SolidRect(String::from("blue"), Rect {x: 100.0, y: 0.0, height: 100.0, width: 100.0 }),
+        DisplayCommand::SolidRect(String::from("yellow"), Rect {x: 0.0, y: 0.0, height: 100.0, width: 100.0 }),
     ]);
 
     let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&vertices, &index_data[..]);
@@ -81,28 +82,34 @@ pub fn render_loop() {
 fn render_commands(command_list: DisplayList) -> (Vec<Vertex>, Vec<u16>) {
     let mut vertices = Vec::new();
     let mut index_data = Vec::new();
+    let mut rect_num: u16 = 0;
 
     for command in command_list {
         match command {
             DisplayCommand::SolidRect(color, rect) => {
                 let c;
                 if color == "red" {
-                    c = [0.5, 0.0, 0.0];
+                    c = [1.0, 0.0, 0.0];
                 } else if color == "green" {
-                    c = [0.0, 0.5, 0.0];
+                    c = [0.0, 1.0, 0.0];
+                } else if color == "blue" {
+                    c = [0.0, 0.0, 1.0];
                 } else {
-                    c = [0.0, 0.0, 0.5];
+                    c = [1.0, 1.0, 0.0];
                 };
-                let (mut v, mut i) = render_rect(&c, rect);
+                let mut v = render_rect(&c, rect);
                 vertices.append(&mut v);
-                index_data.append(&mut i);
+
+                let index_base: u16 = rect_num * 4;
+                index_data.append(&mut vec![index_base, index_base + 1, index_base + 2, index_base + 2, index_base + 3, index_base]);
+                rect_num += 1;
             },
         }
     }
     return (vertices, index_data);
 }
 
-fn render_rect(c: &[f32; 3], rect: Rect) -> (Vec<Vertex>, Vec<u16>) {
+fn render_rect(c: &[f32; 3], rect: Rect) -> Vec<Vertex> {
     println!("{:?}", rect);
     let (x, y, h, w) = transform_rect(rect);
     let vertices = vec![
@@ -111,13 +118,8 @@ fn render_rect(c: &[f32; 3], rect: Rect) -> (Vec<Vertex>, Vec<u16>) {
         Vertex { pos: [x, y + h], color: *c },
         Vertex { pos: [x + w, y + h], color: *c },
     ];
-    let index_data = vec![
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4,
-        8, 9, 10, 10, 11, 8,
-    ];
 
-    return (vertices, index_data);
+    return vertices;
 }
 
 /// Transforms a rect into gfx coordinates based on screen size.
