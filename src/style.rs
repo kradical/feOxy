@@ -1,12 +1,12 @@
 //! The `style` module takes a dom tree and stylesheet and constructs a style tree.
 
 use dom::{Node, ElementData, NodeType};
-use css::{Selector, Stylesheet};
+use css::{Selector, Stylesheet, Value};
 
 use std::collections::HashMap;
 use std::{fmt, str};
 
-type PropertyMap<'a> = HashMap<&'a str, &'a str>;
+type PropertyMap<'a> = HashMap<&'a str, &'a Value>;
 
 pub struct StyledNode<'a> {
     node: &'a Node,
@@ -71,17 +71,22 @@ impl<'a> StyledNode<'a> {
     /// Return a style property for the current node.
     ///
     /// name: the property name to return the value of.
-    pub fn value(&self, name: &str) -> Option<&&str> {
+    pub fn value(&self, name: &str) -> Option<&&Value> {
         self.styles.get(name)
     }
 
     /// Return the value of display property of the current node.
     pub fn get_display(&self) -> Display {
         match self.value("display") {
-            Some(s) => match *s {
-                "block" => Display::Block,
-                "none" => Display::None,
-                _ => Display::Inline
+            Some(s) => match **s {
+                Value::Other(ref v) => {
+                    match v.as_ref() {
+                        "block" => Display::Block,
+                        "none" => Display::None,
+                        _ => Display::Inline
+                    }
+                },
+                _ => Display::Inline,
             },
             None => Display::Inline
         }
@@ -93,7 +98,12 @@ impl<'a> StyledNode<'a> {
     /// default: the value to return if None is found.
     pub fn value_or<T>(&self, name: &str, default: T) -> T where T: str::FromStr {
         match self.value(name) {
-            Some(v) => v.parse().unwrap_or(default),
+            Some(v) => {
+                match **v {
+                    Value::Other(ref s) => s.parse().unwrap_or(default),
+                    _ => default,
+                }
+            }
             None => default,
         }
     }

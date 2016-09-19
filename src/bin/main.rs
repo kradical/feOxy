@@ -28,8 +28,8 @@ fn main() {
     let layout_tree = layout::layout_tree(&style_tree_root, viewport);
     layout::pretty_print(&layout_tree);
 
-    render::build_display_commands(&layout_tree);
-    render::render_loop();
+    let display_commands =  render::build_display_commands(&layout_tree);
+    render::render_loop(&display_commands);
 }
 
 fn test_html() -> Vec<dom::Node> {

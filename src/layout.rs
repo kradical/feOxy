@@ -1,5 +1,6 @@
 //! The `layout` module takes a style tree and creates a layout of boxes.
 
+use css::Value;
 use style::{StyledNode, Display};
 use std::fmt;
 
@@ -155,9 +156,14 @@ impl<'a> LayoutBox<'a> {
     /// Use a style node's height value if it exists
     fn calculate_height(&mut self) {
         match self.get_style_node().value("height") {
-            Some(h) => match h.parse::<f32>() {
-                Ok(num) => { self.dimensions.content.height = num; },
-                Err(_) => {}
+            Some(h) => match **h {
+                Value::Other(ref s) => {
+                    match s.parse::<f32>() {
+                        Ok(num) => { self.dimensions.content.height = num; },
+                        Err(_) => { },
+                    }
+                },
+                _ => {},
             },
             None => {}
         }
@@ -174,7 +180,7 @@ impl<'a> LayoutBox<'a> {
     }
 
     /// Return the style node for the layout block.
-    fn get_style_node(&self) -> &'a StyledNode<'a> {
+    pub fn get_style_node(&self) -> &'a StyledNode<'a> {
         match self.box_type {
             BoxType::Block(n) => n,
             BoxType::Inline(n) => n,

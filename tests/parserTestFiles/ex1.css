@@ -20,5 +20,23 @@ li {
 
 .valid {
     height: 50.0;
-    widht: 100.0;
+    width: 100.0;
+}
+
+a {
+    height: 10;
+    width: 10;
+    background-color: red;
+}
+
+b {
+    height: 20;
+    width: 20;
+    background-color: blue;
+}
+
+c {
+    height: 30;
+    width: 30;
+    background-color: green;
 }

@@ -1,6 +1,6 @@
 //! The `css_parse` module parses css stylesheets into css rule datastructures.
 
-use css::{Declaration, Rule, Selector, SimpleSelector, Stylesheet};
+use css::{Color, Declaration, Rule, Selector, SimpleSelector, Stylesheet, Value};
 
 use std::iter::Peekable;
 use std::str::Chars;
@@ -25,6 +25,7 @@ impl<'a> CssParser<'a> {
             let selectors = self.parse_selectors();
             let styles = self.parse_declarations();
             let rule = Rule::new(selectors, styles);
+
 
             stylesheet.rules.push(rule);
         }
@@ -133,11 +134,23 @@ impl<'a> CssParser<'a> {
 
             let property = self.consume_while(|x| x != ':');
 
+
             self.chars.next();
             self.consume_while(char::is_whitespace);
 
             let value = self.consume_while(|x| x != ';' && x != '\n' && x != '}');
-            let declaration = Declaration::new(property, value);
+
+
+
+
+            let declaration;
+            // is a color value
+            if property == "background-color" {
+                let color = translate_color(&value);
+                declaration = Declaration::new(property, Value::Color(color));
+            } else {
+                declaration = Declaration::new(property, Value::Other(value));
+            }
 
             if self.chars.peek().map_or(false, |c| *c == ';') {
                 declarations.push(declaration);
@@ -165,6 +178,19 @@ impl<'a> CssParser<'a> {
         }
 
         result
+    }
+}
+
+/// Gets an rgba color struct from a string
+fn translate_color(c: &str) -> Color {
+    if c == "red" {
+        Color { r: 1.0, g: 0.0, b: 0.0, a: 0.0 }
+    } else if c == "green" {
+        Color { r: 0.0, g: 1.0, b: 0.0, a: 0.0 }
+    } else if c == "blue" {
+        Color { r: 0.0, g: 0.0, b: 1.0, a: 0.0 }
+    } else {
+        Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }
     }
 }
 

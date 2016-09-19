@@ -31,7 +31,7 @@ gfx_defines!{
 
 const CLEAR_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
-pub fn render_loop() {
+pub fn render_loop(command_list: &[DisplayCommand]) {
     let builder = glutin::WindowBuilder::new()
         .with_title(String::from("feOxy"))
         .with_dimensions(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)
@@ -48,12 +48,7 @@ pub fn render_loop() {
         pipe::new()
     ).unwrap();
 
-    let (vertices, index_data) = render_commands(vec![
-        DisplayCommand::SolidRect(String::from("red"), Rect {x: 100.0, y: 100.0, height: 100.0, width: 100.0 }),
-        DisplayCommand::SolidRect(String::from("green"), Rect {x: 0.0, y: 100.0, height: 100.0, width: 100.0 }),
-        DisplayCommand::SolidRect(String::from("blue"), Rect {x: 100.0, y: 0.0, height: 100.0, width: 100.0 }),
-        DisplayCommand::SolidRect(String::from("yellow"), Rect {x: 0.0, y: 0.0, height: 100.0, width: 100.0 }),
-    ]);
+    let (vertices, index_data) = render_commands(command_list);
 
     let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&vertices, &index_data[..]);
 
@@ -79,24 +74,16 @@ pub fn render_loop() {
     }
 }
 
-fn render_commands(command_list: DisplayList) -> (Vec<Vertex>, Vec<u16>) {
+fn render_commands(command_list: &[DisplayCommand]) -> (Vec<Vertex>, Vec<u16>) {
     let mut vertices = Vec::new();
     let mut index_data = Vec::new();
     let mut rect_num: u16 = 0;
 
     for command in command_list {
-        match command {
-            DisplayCommand::SolidRect(color, rect) => {
-                let c;
-                if color == "red" {
-                    c = [1.0, 0.0, 0.0];
-                } else if color == "green" {
-                    c = [0.0, 1.0, 0.0];
-                } else if color == "blue" {
-                    c = [0.0, 0.0, 1.0];
-                } else {
-                    c = [1.0, 1.0, 0.0];
-                };
+        match *command {
+            DisplayCommand::SolidRect(ref color, ref rect) => {
+                let c = [color.r, color.g, color.b];
+
                 let mut v = render_rect(&c, rect);
                 vertices.append(&mut v);
 
@@ -109,7 +96,7 @@ fn render_commands(command_list: DisplayList) -> (Vec<Vertex>, Vec<u16>) {
     return (vertices, index_data);
 }
 
-fn render_rect(c: &[f32; 3], rect: Rect) -> Vec<Vertex> {
+fn render_rect(c: &[f32; 3], rect: &Rect) -> Vec<Vertex> {
     println!("{:?}", rect);
     let (x, y, h, w) = transform_rect(rect);
     let vertices = vec![
@@ -131,7 +118,7 @@ fn render_rect(c: &[f32; 3], rect: Rect) -> Vec<Vertex> {
 ///     |       |                     |       |             |       |
 ///     +-------+                     +-------+             +-------+
 ///  (x, y+h) (x+w, y+h)           (x, y)  (x+w, y)     (-1, -1)  (1, -1)
-fn transform_rect(rect: Rect) -> (f32, f32, f32, f32) {
+fn transform_rect(rect: &Rect) -> (f32, f32, f32, f32) {
     let w = rect.width / SCREEN_WIDTH as f32 * 2.0;
     let h = rect.height / SCREEN_HEIGHT as f32 * 2.0;
     let x = rect.x / SCREEN_WIDTH as f32 * 2.0 - 1.0;
@@ -142,12 +129,23 @@ fn transform_rect(rect: Rect) -> (f32, f32, f32, f32) {
     (x, y, h, w)
 }
 
+use css::{Value, Color};
 use layout::{LayoutBox, Rect};
+use std::fmt;
 
 pub type DisplayList = Vec<DisplayCommand>;
 
 pub enum DisplayCommand {
-    SolidRect(String, Rect),
+    SolidRect(Color, Rect),
+}
+impl fmt::Debug for DisplayCommand {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            DisplayCommand::SolidRect(ref c, ref r) => {
+                write!(f, "{:?} {:?}", c, r)
+            },
+        }
+    }
 }
 
 pub fn build_display_commands(root: &LayoutBox) -> DisplayList {
@@ -167,12 +165,22 @@ fn render_layout_box(commands: &mut DisplayList, layout_box: &LayoutBox) {
 }
 
 fn render_background(commands: &mut DisplayList, layout_box: &LayoutBox) {
-    get_color(layout_box, "background").map(|color|
+    get_color(layout_box, "background-color").map(|color|
         commands.push(DisplayCommand::SolidRect(color, layout_box.dimensions.border_box())));
 }
 
-fn get_color(layout_box: &LayoutBox, name: &str) -> Option<String> {
-    return None;
+fn get_color(layout_box: &LayoutBox, name: &str) -> Option<Color> {
+    let style_node = layout_box.get_style_node();
+
+    match style_node.value(name) {
+        Some(v) => {
+            match **v {
+                Value::Color(ref c) => { return Some(c.clone()) },
+                _ => { return None },
+            }
+        },
+        None => { return None },
+    }
 }
 
 fn render_borders(commands: &mut DisplayList, layout_box: &LayoutBox) {
@@ -205,7 +213,7 @@ fn render_borders(commands: &mut DisplayList, layout_box: &LayoutBox) {
         height: d.border.top,
     }));
 
-    commands.push(DisplayCommand::SolidRect(color.clone(), Rect {
+    commands.push(DisplayCommand::SolidRect(color, Rect {
         x: border_box.x,
         y: border_box.y + border_box.height - d.border.bottom,
         width: border_box.width,

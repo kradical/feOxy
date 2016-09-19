@@ -3,12 +3,12 @@
 use std::fmt;
 use std::default::Default;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq)]
 pub struct Stylesheet {
     pub rules: Vec<Rule>,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq)]
 pub struct Rule {
     pub selectors: Vec<Selector>,
     pub declarations: Vec<Declaration>,
@@ -27,10 +27,24 @@ pub struct SimpleSelector {
     pub classes: Vec<String>,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq)]
 pub struct Declaration {
     pub property: String,
-    pub value: String,
+    pub value: Value,
+}
+
+#[derive(PartialEq)]
+pub enum Value {
+    Color(Color),
+    Other(String),
+}
+
+#[derive(PartialEq, Clone)]
+pub struct Color {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
 }
 
 impl Stylesheet {
@@ -184,7 +198,7 @@ impl Declaration {
     ///
     /// p: Property name.
     /// v: Property value.
-    pub fn new(p: String, v: String) -> Declaration {
+    pub fn new(p: String, v: Value) -> Declaration {
         Declaration {
             property: p,
             value: v,
@@ -195,13 +209,28 @@ impl Default for Declaration {
     fn default() -> Self {
         Declaration {
             property: String::from(""),
-            value: String::from(""),
+            value: Value::Other(String::from("")),
         }
     }
 }
 impl fmt::Debug for Declaration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.property, self.value)
+        write!(f, "{}: {:?}", self.property, self.value)
+    }
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Value::Color(ref c) => write!(f, "{:?}", c),
+            Value::Other(ref s) => write!(f, "{:?}", s),
+        }
+    }
+}
+
+impl fmt::Debug for Color {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "r: {} g: {} b: {} a: {}", self.r, self.g, self.b, self.a)
     }
 }
 
