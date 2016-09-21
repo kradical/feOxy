@@ -1,8 +1,8 @@
 # feOxy
 A bare bones web browser.
 
-![rust](http://img.shields.io/badge/language-rust-red.svg)
-![gfx](http://img.shields.io/badge/dependency-gfx-red.svg)
+[![rust](http://img.shields.io/badge/language-rust-red.svg)](https://www.rust-lang.org/en-US/)
+[![gfx](http://img.shields.io/badge/lib-gfx-red.svg)](https://github.com/gfx-rs/gfx)
 
 Not meant to be feature complete, more of a learning tool/exercise.
 
