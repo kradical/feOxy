@@ -1,5 +1,7 @@
 # feOxy
-A bare bones web browser in rust.
+A bare bones web browser.
+
+![rust](http://img.shields.io/badge/language-rust-red.svg)
 
 Not meant to be feature complete, more of a learning tool/exercise.
 
@@ -12,5 +14,7 @@ In order to run:
 
 Currently a default html and css file are hardcoded but it's in the works to have an "address bar" to open different files, and support links instead of a hardcoded css filenames.
 
+
+An initial color test:
 ![feOxy color test](http://i68.tinypic.com/2mrcr9g.png)
 
