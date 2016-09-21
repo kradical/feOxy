@@ -228,6 +228,22 @@ impl fmt::Debug for Value {
     }
 }
 
+impl Color {
+    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Color {
+            r: r,
+            g: g,
+            b: b,
+            a: a,
+        }
+    }
+}
+impl Default for Color {
+    /// default is white
+    fn default() -> Self {
+        Color::new(1.0, 1.0, 1.0, 1.0)
+    }
+}
 impl fmt::Debug for Color {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "r: {} g: {} b: {} a: {}", self.r, self.g, self.b, self.a)

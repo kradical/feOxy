@@ -23,8 +23,8 @@ fn main() {
 
     println!("");
     let mut viewport = layout::Dimensions::default();
-    viewport.content.width = 800.0;
-    viewport.content.height = 600.0;
+    viewport.content.width = 1024.0;
+    viewport.content.height = 768.0;
     let layout_tree = layout::layout_tree(&style_tree_root, viewport);
     layout::pretty_print(&layout_tree);
 
@@ -34,7 +34,7 @@ fn main() {
 
 fn test_html() -> Vec<dom::Node> {
     let mut path = env::current_dir().unwrap();
-    path.push("tests/parserTestFiles/exCustom.html");
+    path.push("tests/parserTestFiles/colorTest.html");
 
     let mut file_reader = match File::open(&path) {
         Ok(f) => BufReader::new(f),
@@ -51,7 +51,7 @@ fn test_html() -> Vec<dom::Node> {
 
 fn test_css() -> css::Stylesheet {
     let mut path = env::current_dir().unwrap();
-    path.push("tests/parserTestFiles/ex1.css");
+    path.push("tests/parserTestFiles/colorTest.css");
 
     let mut file_reader = match File::open(&path) {
         Ok(f) => BufReader::new(f),
