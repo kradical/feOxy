@@ -2,6 +2,7 @@
 A bare bones web browser.
 
 ![rust](http://img.shields.io/badge/language-rust-red.svg)
+![gfx](http://img.shields.io/badge/dependency-gfx-red.svg)
 
 Not meant to be feature complete, more of a learning tool/exercise.
 
