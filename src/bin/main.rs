@@ -26,7 +26,7 @@ fn main() {
     viewport.content.width = 1024.0;
     viewport.content.height = 768.0;
     let layout_tree = layout::layout_tree(&style_tree_root, viewport);
-    layout::pretty_print(&layout_tree);
+    layout::pretty_print(&layout_tree, 0);
 
     let display_commands =  render::build_display_commands(&layout_tree);
     render::render_loop(&display_commands);

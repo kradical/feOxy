@@ -17,6 +17,7 @@ pub struct StyledNode<'a> {
 pub enum Display {
     Block,
     Inline,
+    InlineBlock,
     None
 }
 
@@ -83,6 +84,7 @@ impl<'a> StyledNode<'a> {
                     match v.as_ref() {
                         "block" => Display::Block,
                         "none" => Display::None,
+                        "inline-block" => Display::InlineBlock,
                         _ => Display::Inline
                     }
                 },

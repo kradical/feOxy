@@ -13,6 +13,7 @@ pub struct LayoutBox<'a> {
 pub enum BoxType<'a> {
     Block(&'a StyledNode<'a>),
     Inline(&'a StyledNode<'a>),
+    InlineBlock(&'a StyledNode<'a>),
     Anonymous,
 }
 
@@ -22,6 +23,7 @@ pub struct Dimensions {
     padding: EdgeSizes,
     pub border: EdgeSizes,
     margin: EdgeSizes,
+    current: Rect,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -52,29 +54,53 @@ impl<'a> LayoutBox<'a> {
         }
     }
 
-    /// Returns either the current inline/anonymous box or creates a new one
-    fn get_inline(&mut self) -> &mut LayoutBox<'a> {
-        match self.box_type {
-            BoxType::Inline(_) | BoxType::Anonymous => self,
-            BoxType::Block(_) => {
-                match self.children.last() {
-                    Some(&LayoutBox { box_type: BoxType::Anonymous, .. }) => {},
-                    _ => self.children.push(LayoutBox::new(BoxType::Anonymous))
-                }
-                self.children.last_mut().unwrap()
-            }
-        }
-    }
-
     /// Lays out the current box, including recursively laying out children boxes.
     ///
     /// b_box: the parent bounding box.
     fn layout(&mut self, b_box: Dimensions) {
         match self.box_type {
             BoxType::Block(_) => self.layout_block(b_box),
-            BoxType::Inline(_) => self.layout_block(b_box),
-            BoxType::Anonymous => {},
+            BoxType::Inline(_) => self.layout_block(b_box), // TODO
+            BoxType::InlineBlock(_) => self.layout_inline_block(b_box),
+            BoxType::Anonymous => {}, // TODO
         }
+    }
+
+    fn layout_inline_block(&mut self, b_box: Dimensions) {
+        self.calculate_inline_width(); // width in pixels for now
+        self.calculate_inline_position(b_box);
+        self.layout_children();
+        self.calculate_height();
+    }
+
+    fn calculate_inline_width(&mut self) {
+        let s = self.get_style_node();
+        let d = &mut self.dimensions;
+
+        d.content.width = s.value_or("width", 0.0);
+        d.margin.left = s.value_or("margin-left", 0.0);
+        d.margin.right = s.value_or("margin-right", 0.0);
+        d.padding.left = s.value_or("padding-left", 0.0);
+        d.padding.right = s.value_or("padding-right", 0.0);
+        d.border.left = s.value_or("border-left", 0.0);
+        d.border.right = s.value_or("border-right", 0.0);
+    }
+
+    /// Position current box below previous boxes in container by updating height
+    fn calculate_inline_position(&mut self, b_box: Dimensions) {
+        let style = self.get_style_node();
+        let d = &mut self.dimensions;
+
+        d.margin.top = style.value_or("margin-top", 0.0);
+        d.margin.bottom = style.value_or("margin-top", 0.0);
+        d.border.top = style.value_or("border-top-width", 0.0);
+        d.border.bottom = style.value_or("border-top-width", 0.0);
+        d.padding.top = style.value_or("padding-top", 0.0);
+        d.padding.bottom = style.value_or("padding-top", 0.0);
+
+        d.content.x = b_box.content.x + b_box.current.x + d.margin.left + d.border.left + d.padding.left;
+        d.content.y = b_box.content.height + b_box.content.y + d.margin.top + d.border.top
+            + d.padding.top;
     }
 
     /// Calls all the functions to layout the current layout box.
@@ -94,16 +120,31 @@ impl<'a> LayoutBox<'a> {
         let style = self.get_style_node();
         let d = &mut self.dimensions;
 
-        let mut width: f32 = style.value_or("width", 0.0);
-        let mut margin_l: f32 = style.value_or("margin-left", 0.0);
-        let mut margin_r: f32 = style.value_or("margin-right", 0.0);
+        let width = style.value_or("width", 0.0);
+        let margin_l = style.value("margin-left");
+        let margin_r = style.value("margin-right");
+
+        let margin_l_num = match margin_l {
+            Some(m) => match **m {
+                Value::Other(ref s) => s.parse().unwrap_or(0.0),
+                _ => 0.0,
+            },
+            None => 0.0,
+        };
+        let margin_r_num = match margin_r {
+            Some(m) => match **m {
+                Value::Other(ref s) => s.parse().unwrap_or(0.0),
+                _ => 0.0,
+            },
+            None => 0.0,
+        };
 
         d.border.left = style.value_or("border-left-width", 0.0);
         d.border.right = style.value_or("border-right-width", 0.0);
         d.padding.left = style.value_or("padding-left", 0.0);
         d.padding.right = style.value_or("padding-right", 0.0);
 
-        let total = width + margin_l + margin_r + d.border.left + d.border.right + d.padding.left
+        let total = width + margin_l_num + margin_r_num + d.border.left + d.border.right + d.padding.left
             + d.padding.right;
 
         let underflow = b_box.content.width - total;
@@ -112,28 +153,40 @@ impl<'a> LayoutBox<'a> {
             // width is auto
             (0.0, _, _) => {
                 if underflow >= 0.0 {
-                    width = underflow;
+                    d.content.width = underflow;
+                    d.margin.right = margin_r_num;
                 } else {
                     // width can't be negative
-                    margin_r = margin_r + underflow;
+                    d.margin.right = margin_r_num + underflow;
+                    d.content.width = width;
                 }
+                d.margin.left = margin_l_num;
             },
             // left margin is auto
-            (w, 0.0, mr) if w != 0.0 && mr != 0.0 => { margin_l = underflow; },
+            (w, None, Some(_)) if w != 0.0 => {
+                d.margin.left = underflow;
+                d.margin.right = margin_r_num;
+                d.content.width = w;
+            },
             // right margin is auto
-            (w, ml, 0.0) if w != 0.0 && ml != 0.0 => { margin_r = underflow; },
+            (w, Some(_), None) if w != 0.0 => {
+                d.margin.right = underflow;
+                d.margin.left = margin_l_num;
+                d.content.width = w;
+            },
             // left/right margin are auto
-            (w, 0.0, 0.0) if w != 0.0 => {
-                margin_l = underflow / 2.0;
-                margin_r = underflow / 2.0;
+            (w, None, None) if w != 0.0 => {
+                d.margin.left = underflow / 2.0;
+                d.margin.right = underflow / 2.0;
+                d.content.width = w;
             },
             // values are overconstrained, calculate margin_right.
-            (_, _, _) => { margin_r = margin_r + underflow; },
+            (_, _, _) => {
+                d.margin.right = margin_r_num + underflow;
+                d.margin.left = margin_l_num;
+                d.content.width = width
+            },
         }
-
-        d.content.width = width;
-        d.margin.left =  margin_l;
-        d.margin.right = margin_r;
     }
 
     /// Position current box below previous boxes in container by updating height
@@ -160,7 +213,7 @@ impl<'a> LayoutBox<'a> {
                 Value::Other(ref s) => {
                     match s.parse::<f32>() {
                         Ok(num) => { self.dimensions.content.height = num; },
-                        Err(_) => { },
+                        Err(_) => {},
                     }
                 },
                 _ => {},
@@ -172,10 +225,30 @@ impl<'a> LayoutBox<'a> {
     /// Layout the current nodes children and adjust it's height.
     fn layout_children(&mut self) {
         let d = &mut self.dimensions;
+        let mut max_child_height = 0.0;
 
         for child in &mut self.children {
             child.layout(*d);
-            d.content.height += child.dimensions.margin_box().height;
+            let new_height = child.dimensions.margin_box().height;
+
+            if new_height > max_child_height {
+                max_child_height = new_height;
+            }
+
+            match child.box_type {
+                BoxType::Block(_) => d.content.height += child.dimensions.margin_box().height,
+                BoxType::InlineBlock(_) => {
+                    d.current.x += child.dimensions.margin_box().width;
+
+                    if d.current.x > d.content.width {
+                        d.content.height += max_child_height;
+                        d.current.x = 0.0;
+                        child.layout(*d); // relayout child
+                        d.current.x += child.dimensions.margin_box().width;
+                    }
+                },
+                _ => {},
+            }
         }
     }
 
@@ -184,6 +257,7 @@ impl<'a> LayoutBox<'a> {
         match self.box_type {
             BoxType::Block(n) => n,
             BoxType::Inline(n) => n,
+            BoxType::InlineBlock(n) => n,
             BoxType::Anonymous => panic!("anonymous blocks have no associated style node"),
         }
     }
@@ -249,6 +323,7 @@ impl<'a> fmt::Debug for BoxType<'a> {
         let display_type = match *self {
             BoxType::Block(_) => "block",
             BoxType::Inline(_) => "inline",
+            BoxType::InlineBlock(_) => "inline-block",
             BoxType::Anonymous => "anonymous"
         };
 
@@ -277,13 +352,15 @@ fn build_layout_tree<'a>(node: &'a StyledNode) -> LayoutBox<'a> {
     let mut layout_node = LayoutBox::new(match node.get_display() {
         Display::Block => BoxType::Block(node),
         Display::Inline => BoxType::Inline(node),
+        Display::InlineBlock => BoxType::InlineBlock(node),
         Display::None => panic!("root node has display: none")
     });
 
     for child in &node.children {
         match child.get_display() {
             Display::Block => layout_node.children.push(build_layout_tree(child)),
-            Display::Inline => layout_node.get_inline().children.push(build_layout_tree(child)),
+            Display::Inline => layout_node.children.push(build_layout_tree(child)),
+            Display::InlineBlock => layout_node.children.push(build_layout_tree(child)),
             Display::None => {}
         }
     }
@@ -293,11 +370,11 @@ fn build_layout_tree<'a>(node: &'a StyledNode) -> LayoutBox<'a> {
 /// Print a layout node and it's descendents
 ///
 /// n: The node of the style tree to print.
-pub fn pretty_print<'a>(n: &'a LayoutBox) {
-    println!("{:?}\n", n);
+pub fn pretty_print<'a>(n: &'a LayoutBox, level: usize) {
+    println!("{}{:?}\n", level, n);
 
     for child in n.children.iter() {
-        pretty_print(&child);
+        pretty_print(&child, level + 1);
     }
 }
 
