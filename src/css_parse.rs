@@ -205,8 +205,6 @@ fn translate_color(color: &str) -> Color {
                 Ok(n) => n as f32 / 255.0,
                 Err(_) => 0.0,
             };
-
-            println!("r: {} g: {} b: {}", red, green, blue);
             return Color::new(red, green, blue, 1.0);
         } else if color.len() == 4 {
             let red = match u8::from_str_radix(&color[1..2], 16) {
@@ -221,9 +219,6 @@ fn translate_color(color: &str) -> Color {
                 Ok(n) => n as f32 / 15.0,
                 Err(_) => 0.0,
             };
-
-            println!("r: {} g: {} b: {}", red, green, blue);
-
             return Color::new(red, green, blue, 1.0);
         } else {
             return Color::default();
@@ -421,7 +416,7 @@ fn is_non_ascii(c: char) -> bool {
 mod tests {
     use super::*;
 
-    use css::{Declaration, Rule, Selector, SimpleSelector, Stylesheet};
+    use css::{Color, Declaration, Rule, Selector, SimpleSelector, Stylesheet, Value};
 
     /// Test a parser is constructed correctly.
     #[test]
@@ -470,9 +465,9 @@ mod tests {
              border-width: 1px;
              background-color: aqua
            }");
-        let decl_col = Declaration::new(String::from("color"), String::from("red"));
-        let decl_bw = Declaration::new(String::from("border-width"), String::from("1px"));
-        let decl_bg_col = Declaration::new(String::from("background-color"), String::from("aqua"));
+        let decl_col = Declaration::new(String::from("color"), Value::Color(Color { r: 1.0, g: 0.0, b: 0.0, a: 1.0}));
+        let decl_bw = Declaration::new(String::from("border-width"), Value::Other(String::from("1px")));
+        let decl_bg_col = Declaration::new(String::from("background-color"), Value::Color(Color { r: 0.0, g: 1.0, b: 1.0, a: 1.0 }));
 
         let expected = vec![decl_col, decl_bw, decl_bg_col];
         assert_eq!(expected, parser.parse_declarations());
@@ -486,8 +481,8 @@ mod tests {
              border-width: 1px
              background-color: aqua
            }");
-        let decl_col = Declaration::new(String::from("color"), String::from("red"));
-        let decl_bg_col = Declaration::new(String::from("background-color"), String::from("aqua"));
+        let decl_col = Declaration::new(String::from("color"), Value::Color(Color { r: 1.0, g: 0.0, b: 0.0, a: 1.0 }));
+        let decl_bg_col = Declaration::new(String::from("background-color"), Value::Color(Color { r: 0.0, g: 1.0, b: 1.0, a: 1.0 }));
 
         let expected = vec![decl_col, decl_bg_col];
         assert_eq!(expected, parser.parse_declarations());
@@ -671,15 +666,15 @@ mod tests {
              }");
         let p_ss = SimpleSelector::new(Some(String::from("p")), None, vec![]);
         let p = Selector::new(vec![p_ss], vec![]);
-        let p_decl = Declaration::new(String::from("color"), String::from("red"));
+        let p_decl = Declaration::new(String::from("color"), Value::Color(Color { r: 1.0, g: 0.0, b: 0.0, a: 1.0 }));
         let rule1 = Rule::new(vec![p], vec![p_decl]);
 
         let body_ss1 = SimpleSelector::new(Some(String::from("body")), Some(String::from("id1")), vec![String::from("class1")]);
         let body1 = Selector::new(vec![body_ss1], vec![]);
         let body_ss2 = SimpleSelector::new(None, None, vec![String::from("class2"), String::from("class3"), String::from("class4")]);
         let body2 = Selector::new(vec![body_ss2], vec![]);
-        let body_decl1 = Declaration::new(String::from("border"), String::from("solid black 1px"));
-        let body_decl2 = Declaration::new(String::from("background-color"), String::from("aqua"));
+        let body_decl1 = Declaration::new(String::from("border"), Value::Other(String::from("solid black 1px")));
+        let body_decl2 = Declaration::new(String::from("background-color"), Value::Color(Color { r: 0.0, g: 1.0, b: 1.0, a: 1.0 }));
         let rule2 = Rule::new(vec![body1, body2], vec![body_decl1, body_decl2]);
 
         assert_eq!(Stylesheet::new(vec![rule1, rule2]), parser.parse_stylesheet())

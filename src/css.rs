@@ -300,6 +300,6 @@ mod tests {
         let decl = Declaration::default();
 
         assert_eq!(decl.property, "");
-        assert_eq!(decl.value, "");
+        assert_eq!(decl.value, Value::Other(String::from("")));
     }
 }
