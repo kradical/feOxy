@@ -141,8 +141,13 @@ impl<'a> CssParser<'a> {
             let value = self.consume_while(|x| x != ';' && x != '\n' && x != '}');
 
             let value_enum = match property.as_ref() {
-                "background-color"|"border-color"|"color" => {
-                    Value::Color(translate_color(&value))
+                "background-color"|"border-color"|"color" => Value::Color(translate_color(&value)),
+                "height"|"width"|
+                "margin-right"|"margin-bottom"|"margin-left"|"margin-top"|
+                "padding-right"|"padding-bottom"|"padding-left"|"padding-top"|
+                "border-right-width"|"border-bottom-width"|"border-left-width"|"border-top-width" => {
+                    // TODO <keyword> or <length> (length has many units) or <percentage>
+                    Value::Number(value.parse().unwrap_or(0.0))
                 },
                 _ => Value::Other(value),
             };

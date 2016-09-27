@@ -36,6 +36,7 @@ pub struct Declaration {
 #[derive(PartialEq)]
 pub enum Value {
     Color(Color),
+    Number(f32),
     Other(String),
 }
 
@@ -223,6 +224,7 @@ impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Value::Color(ref c) => write!(f, "{:?}", c),
+            Value::Number(v) => write!(f, "{:?}", v),
             Value::Other(ref s) => write!(f, "{:?}", s),
         }
     }
@@ -249,11 +251,6 @@ impl fmt::Debug for Color {
         write!(f, "r: {} g: {} b: {} a: {}", self.r, self.g, self.b, self.a)
     }
 }
-
-// TODO
-//  -add enum for css value types
-//  -add creation logic for css value types
-//  -write tests
 
 /// Tests ----------------------------------------------------------------------
 #[cfg(test)]

@@ -98,11 +98,11 @@ impl<'a> StyledNode<'a> {
     ///
     /// name: the property name to return the value of.
     /// default: the value to return if None is found.
-    pub fn value_or<T>(&self, name: &str, default: T) -> T where T: str::FromStr {
+    pub fn num_or(&self, name: &str, default: f32) -> f32 {
         match self.value(name) {
             Some(v) => {
                 match **v {
-                    Value::Other(ref s) => s.parse().unwrap_or(default),
+                    Value::Number(n) => n,
                     _ => default,
                 }
             }
