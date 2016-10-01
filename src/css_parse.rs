@@ -1,6 +1,6 @@
 //! The `css_parse` module parses css stylesheets into css rule datastructures.
 
-use css::{Color, Declaration, Rule, Selector, SimpleSelector, Stylesheet, Value};
+use css::{Color, Declaration, Rule, Selector, SimpleSelector, Stylesheet, Unit, Value};
 
 use std::iter::Peekable;
 use std::str::Chars;
@@ -87,10 +87,7 @@ impl<'a> CssParser<'a> {
                         sselector.classes.push(class_name);
                     }
                 },
-                _ => {
-                    // consume invalid selector
-                    self.consume_while(|c| c != ',' && c != '{');
-                },
+                _ => { self.consume_while(|c| c != ',' && c != '{'); }, // consume invalid selector
             }
         }
 
@@ -114,7 +111,7 @@ impl<'a> CssParser<'a> {
             None => {},
         }
 
-        ident
+        ident.to_lowercase()
     }
 
     /// Wraps an identifier in an option
@@ -132,23 +129,19 @@ impl<'a> CssParser<'a> {
         while self.chars.peek().map_or(false, |c| *c != '}') {
             self.consume_while(char::is_whitespace);
 
-            let property = self.consume_while(|x| x != ':');
-
+            let property = self.consume_while(|x| x != ':').to_lowercase();
 
             self.chars.next();
             self.consume_while(char::is_whitespace);
 
-            let value = self.consume_while(|x| x != ';' && x != '\n' && x != '}');
+            let value = self.consume_while(|x| x != ';' && x != '\n' && x != '}').to_lowercase();
 
             let value_enum = match property.as_ref() {
                 "background-color"|"border-color"|"color" => Value::Color(translate_color(&value)),
-                "height"|"width"|
                 "margin-right"|"margin-bottom"|"margin-left"|"margin-top"|
                 "padding-right"|"padding-bottom"|"padding-left"|"padding-top"|
-                "border-right-width"|"border-bottom-width"|"border-left-width"|"border-top-width" => {
-                    // TODO <keyword> or <length> (length has many units) or <percentage>
-                    Value::Number(value.parse().unwrap_or(0.0))
-                },
+                "border-right-width"|"border-bottom-width"|"border-left-width"|"border-top-width"|
+                "height"|"width" => translate_length(&value),
                 _ => Value::Other(value),
             };
 
@@ -180,6 +173,44 @@ impl<'a> CssParser<'a> {
         }
 
         result
+    }
+}
+
+fn translate_length(value: &str) -> Value {
+    let mut num_str = String::new();
+    let mut unit = String::new();
+    let mut parsing_num = true;
+
+    for c in value.chars() {
+        if c.is_numeric() && parsing_num {
+            num_str.push(c);
+        } else {
+            unit.push(c);
+            parsing_num = false;
+        }
+    }
+
+    // TODO: make declaration invalid if the number doesn't parse correctly
+    let number = num_str.parse().unwrap_or(0.0);
+
+    match unit.as_ref() {
+        "em" => Value::Length(number, Unit::Em),
+        "ex" => Value::Length(number, Unit::Ex),
+        "ch" => Value::Length(number, Unit::Ch),
+        "rem" => Value::Length(number, Unit::Rem),
+        "vh" => Value::Length(number, Unit::Vh),
+        "vw" => Value::Length(number, Unit::Vw),
+        "vmin" => Value::Length(number, Unit::Vmin),
+        "vmax" => Value::Length(number, Unit::Vmax),
+        "px"|"" => Value::Length(number, Unit::Px),
+        "mm" => Value::Length(number, Unit::Mm),
+        "q" => Value::Length(number, Unit::Q),
+        "cm" => Value::Length(number, Unit::Cm),
+        "in" => Value::Length(number, Unit::In),
+        "pt" => Value::Length(number, Unit::Pt),
+        "pc" => Value::Length(number, Unit::Pc),
+        "pct" => Value::Length(number, Unit::Pct),
+        _ => Value::Length(number, Unit::Px), // default to pixel 
     }
 }
 
@@ -371,6 +402,7 @@ fn translate_color(color: &str) -> Color {
             "yellowgreen" => Color::new(0.6039215686274509, 0.803921568627451, 0.19607843137254902, 1.0),
             "rebeccapurple" => Color::new(0.4, 0.2, 0.6, 1.0),
             _ => Color::new(0.0, 0.0, 0.0, 1.0),
+            // TODO: throw away invalid declaration instead of using some default
         };
     }
 }

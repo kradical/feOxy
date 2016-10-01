@@ -102,7 +102,7 @@ impl<'a> StyledNode<'a> {
         match self.value(name) {
             Some(v) => {
                 match **v {
-                    Value::Number(n) => n,
+                    Value::Length(n, _) => n,
                     _ => default,
                 }
             }

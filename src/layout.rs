@@ -210,7 +210,7 @@ impl<'a> LayoutBox<'a> {
     fn calculate_height(&mut self) {
         self.get_style_node().value("height").map_or((), |h| {
             match **h {
-                Value::Number(n) => self.dimensions.content.height = n,
+                Value::Length(n, _) => self.dimensions.content.height = n,
                 _ => {},
             }
         })

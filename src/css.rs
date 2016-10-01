@@ -36,8 +36,28 @@ pub struct Declaration {
 #[derive(PartialEq)]
 pub enum Value {
     Color(Color),
-    Number(f32),
+    Length(f32, Unit),
     Other(String),
+}
+
+#[derive(PartialEq)]
+pub enum Unit {
+    Em, // calculated or inherited font-size
+    Ex, // height of the font's x character
+    Ch, // width of the font's 0 character
+    Rem, // font-size of the root element
+    Vh, // 1/100th the height of the viewport
+    Vw, // 1/100th the width of the viewport
+    Vmin, // 1/100th the smallest side
+    Vmax, // 1/100th the largest side
+    Px, // pixel
+    Mm, // millimeter
+    Q, // 1/4th of a millimeter (quarter)
+    Cm, // centimeter
+    In, // inch
+    Pt, // 1/72th of an inch (point)
+    Pc, // 12 points (pica)
+    Pct, // Percentage
 }
 
 #[derive(PartialEq, Clone)]
@@ -224,7 +244,7 @@ impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Value::Color(ref c) => write!(f, "{:?}", c),
-            Value::Number(v) => write!(f, "{:?}", v),
+            Value::Length(l, _) => write!(f, "{:?}", l),
             Value::Other(ref s) => write!(f, "{:?}", s),
         }
     }
