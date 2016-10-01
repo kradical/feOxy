@@ -10,6 +10,9 @@ use glutin;
 use gfx::traits::FactoryExt;
 use gfx::Device;
 
+use layout;
+use command::DisplayCommand;
+
 pub type DepthFormat = gfx::format::DepthStencil;
 pub type ColorFormat = gfx::format::Rgba8;
 
@@ -43,8 +46,8 @@ pub fn render_loop(command_list: &[DisplayCommand]) {
     let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 
     let pso = factory.create_pipeline_simple(
-        include_bytes!("shaders/triangle.glslv"),
-        include_bytes!("shaders/triangle.glslf"),
+        include_bytes!("shaders/solid.glslv"),
+        include_bytes!("shaders/solid.glslf"),
         pipe::new()
     ).unwrap();
 
@@ -96,7 +99,7 @@ fn render_commands(command_list: &[DisplayCommand]) -> (Vec<Vertex>, Vec<u16>) {
     return (vertices, index_data);
 }
 
-fn render_rect(c: &[f32; 3], rect: &Rect) -> Vec<Vertex> {
+fn render_rect(c: &[f32; 3], rect: &layout::Rect) -> Vec<Vertex> {
     println!("{:?}", rect);
     let (x, y, h, w) = transform_rect(rect);
     let vertices = vec![
@@ -106,7 +109,7 @@ fn render_rect(c: &[f32; 3], rect: &Rect) -> Vec<Vertex> {
         Vertex { pos: [x + w, y + h], color: *c },
     ];
 
-    return vertices;
+    vertices
 }
 
 /// Transforms a rect into gfx coordinates based on screen size.
@@ -118,7 +121,7 @@ fn render_rect(c: &[f32; 3], rect: &Rect) -> Vec<Vertex> {
 ///     |       |                     |       |             |       |
 ///     +-------+                     +-------+             +-------+
 ///  (x, y+h) (x+w, y+h)           (x, y)  (x+w, y)     (-1, -1)  (1, -1)
-fn transform_rect(rect: &Rect) -> (f32, f32, f32, f32) {
+fn transform_rect(rect: &layout::Rect) -> (f32, f32, f32, f32) {
     let w = rect.width / SCREEN_WIDTH as f32 * 2.0;
     let h = rect.height / SCREEN_HEIGHT as f32 * 2.0;
     let x = rect.x / SCREEN_WIDTH as f32 * 2.0 - 1.0;
@@ -127,96 +130,4 @@ fn transform_rect(rect: &Rect) -> (f32, f32, f32, f32) {
     println!("x: {}, y: {}, w: {}, h: {}", x, y, w, h);
 
     (x, y, h, w)
-}
-
-use css::{Value, Color};
-use layout::{LayoutBox, Rect};
-use std::fmt;
-
-pub type DisplayList = Vec<DisplayCommand>;
-
-pub enum DisplayCommand {
-    SolidRect(Color, Rect),
-}
-impl fmt::Debug for DisplayCommand {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            DisplayCommand::SolidRect(ref c, ref r) => {
-                write!(f, "{:?} {:?}", c, r)
-            },
-        }
-    }
-}
-
-pub fn build_display_commands(root: &LayoutBox) -> DisplayList {
-    let mut commands = Vec::new();
-    render_layout_box(&mut commands, root);
-    commands
-}
-
-fn render_layout_box(commands: &mut DisplayList, layout_box: &LayoutBox) {
-    render_background(commands, layout_box);
-    render_borders(commands, layout_box);
-    //TODO: Render text
-
-    for child in &layout_box.children {
-        render_layout_box(commands, child);
-    }
-}
-
-fn render_background(commands: &mut DisplayList, layout_box: &LayoutBox) {
-    get_color(layout_box, "background-color").map(|color|
-        commands.push(DisplayCommand::SolidRect(color, layout_box.dimensions.border_box())));
-}
-
-fn get_color(layout_box: &LayoutBox, name: &str) -> Option<Color> {
-    let style_node = layout_box.get_style_node();
-
-    match style_node.value(name) {
-        Some(v) => {
-            match **v {
-                Value::Color(ref c) => { return Some(c.clone()) },
-                _ => { return None },
-            }
-        },
-        None => { return None },
-    }
-}
-
-fn render_borders(commands: &mut DisplayList, layout_box: &LayoutBox) {
-    let color = match get_color(layout_box, "border-color") {
-        Some(color) => color,
-        _ => return,
-    };
-
-    let d = &layout_box.dimensions;
-    let border_box = d.border_box();
-
-    commands.push(DisplayCommand::SolidRect(color.clone(), Rect {
-        x: border_box.x,
-        y: border_box.y,
-        width: d.border.left,
-        height: border_box.height,
-    }));
-
-    commands.push(DisplayCommand::SolidRect(color.clone(), Rect {
-        x: border_box.x + border_box.width - d.border.right,
-        y: border_box.y,
-        width: d.border.right,
-        height: border_box.height,
-    }));
-
-    commands.push(DisplayCommand::SolidRect(color.clone(), Rect {
-        x: border_box.x,
-        y: border_box.y,
-        width: border_box.width,
-        height: d.border.top,
-    }));
-
-    commands.push(DisplayCommand::SolidRect(color, Rect {
-        x: border_box.x,
-        y: border_box.y + border_box.height - d.border.bottom,
-        width: border_box.width,
-        height: d.border.bottom,
-    }));
 }

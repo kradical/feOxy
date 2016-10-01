@@ -10,3 +10,4 @@ pub mod css_parse;
 pub mod style;
 pub mod layout;
 pub mod render;
+pub mod command;

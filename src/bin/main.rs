@@ -1,5 +1,5 @@
 extern crate fe_oxy;
-use fe_oxy::{dom, css, style, layout, render, html_parse, css_parse};
+use fe_oxy::{command, css, css_parse, dom, html_parse, layout, render, style};
 
 use std::env;
 use std::fs::File;
@@ -28,7 +28,7 @@ fn main() {
     let layout_tree = layout::layout_tree(&style_tree_root, viewport);
     layout::pretty_print(&layout_tree, 0);
 
-    let display_commands =  render::build_display_commands(&layout_tree);
+    let display_commands =  command::build_display_commands(&layout_tree);
     render::render_loop(&display_commands);
 }
 
