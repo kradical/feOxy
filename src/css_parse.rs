@@ -209,7 +209,7 @@ fn translate_length(value: &str) -> Value {
         "in" => Value::Length(number, Unit::In),
         "pt" => Value::Length(number, Unit::Pt),
         "pc" => Value::Length(number, Unit::Pc),
-        "pct" => Value::Length(number, Unit::Pct),
+        "%" => Value::Length(number, Unit::Pct),
         _ => Value::Length(number, Unit::Px), // default to pixel 
     }
 }

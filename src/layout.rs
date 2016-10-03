@@ -1,7 +1,7 @@
 //! The `layout` module takes a style tree and creates a layout of boxes.
 
-use css::Value;
-use style::{StyledNode, Display};
+use css::{Unit, Value};
+use style::{Display, StyledNode};
 use std::fmt;
 
 pub struct LayoutBox<'a> {
@@ -67,17 +67,17 @@ impl<'a> LayoutBox<'a> {
     }
 
     fn layout_inline_block(&mut self, b_box: Dimensions) {
-        self.calculate_inline_width(); // width in pixels for now
+        self.calculate_inline_width(b_box); // width in pixels for now
         self.calculate_inline_position(b_box);
         self.layout_children();
         self.calculate_height();
     }
 
-    fn calculate_inline_width(&mut self) {
+    fn calculate_inline_width(&mut self, b_box: Dimensions) {
         let s = self.get_style_node();
         let d = &mut self.dimensions;
 
-        d.content.width = s.num_or("width", 0.0);
+        d.content.width = get_absolute_num(s, b_box, "width").unwrap_or(b_box.content.width); //default width to 100%
         d.margin.left = s.num_or("margin-left", 0.0);
         d.margin.right = s.num_or("margin-right", 0.0);
         d.padding.left = s.num_or("padding-left", 0.0);
@@ -322,6 +322,20 @@ impl<'a> fmt::Debug for BoxType<'a> {
         };
 
         write!(f, "{}", display_type)
+    }
+}
+
+fn get_absolute_num(s_node: &StyledNode, b_box: Dimensions, prop: &str) -> Option<f32> {
+    match s_node.value(prop) {
+        Some(ref v) => match ***v {
+            Value::Length(l, ref u) => match *u {
+                Unit::Px => Some(l),
+                Unit::Pct => Some(l * b_box.content.width / 100.0),
+                _ => panic!("Unimplemented css length unit"),
+            },
+            _ => None,
+        },
+        None => None,
     }
 }
 
