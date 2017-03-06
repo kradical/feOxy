@@ -40,9 +40,7 @@ fn render_background(commands: &mut DisplayList, layout_box: &LayoutBox) {
 }
 
 fn get_color(layout_box: &LayoutBox, name: &str) -> Option<Color> {
-    let style_node = layout_box.get_style_node();
-
-    match style_node.value(name) {
+    match layout_box.styled_node.value(name) {
         Some(v) => {
             match **v {
                 Value::Color(ref c) => { return Some(c.clone()) },

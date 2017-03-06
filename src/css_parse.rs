@@ -222,7 +222,6 @@ fn translate_length(value: &str) -> Value {
 /// can be hsl() or hsla() functions
 fn translate_color(color: &str) -> Color {
     if color.starts_with("#") {
-        println!("hex code");
         if color.len() == 7 {
             let red = match u8::from_str_radix(&color[1..3], 16) {
                 Ok(n) => n as f32 / 255.0,

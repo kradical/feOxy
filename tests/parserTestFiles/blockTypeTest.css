@@ -1,0 +1,58 @@
+html {
+  display: block;
+}
+
+head {
+  display: none;
+}
+
+body {
+  display: block;
+  margin: 8px;
+}
+
+div {
+  display: block;
+}
+
+.gold {
+  background-color: gold;
+}
+.silver {
+  background-color: silver;
+}
+.bronze {
+  background-color: #cd7f32;
+}
+.orangered {
+  background-color: orangered;
+}
+
+.inline-block {
+  display: inline-block;
+  margin-right: 1px;
+  margin-bottom: 1px;
+  margin-left: 1px;
+  margin-top: 1px;
+  height: 35px;
+  width: 10%;
+}
+
+.block {
+  margin-right: 1px;
+  margin-bottom: 1px;
+  margin-left: 1px;
+  margin-top: 1px;
+  height: 35px;
+  width: 10%;
+}
+
+.inline {
+  display: inline;
+  margin-right: 1px;
+  margin-bottom: 1px;
+  margin-left: 1px;
+  margin-top: 1px;
+  height: 35px;
+  width: 10%;
+}

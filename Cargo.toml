@@ -9,6 +9,7 @@ doc = false
 test = false
 
 [dependencies]
-gfx = "*"
-gfx_window_glutin = "*"
+gfx = "0.14.0"
+gfx_text = "0.15.0"
+gfx_window_glutin = "0.14.0"
 glutin = "*"

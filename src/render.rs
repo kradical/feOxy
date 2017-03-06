@@ -4,9 +4,11 @@
 // TODO seperate drawing logic from command building logic
 
 use gfx;
+use gfx_text;
 use gfx_window_glutin;
 use glutin;
 
+use gfx::Factory;
 use gfx::traits::FactoryExt;
 use gfx::Device;
 
@@ -32,6 +34,13 @@ gfx_defines!{
     }
 }
 
+#[derive(Copy, Clone)]
+struct RenderText<'a> {
+    text: &'a str,
+    position: [i32; 2],
+    color: [f32; 4],
+}
+
 const CLEAR_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
 pub fn render_loop(command_list: &[DisplayCommand]) {
@@ -52,6 +61,7 @@ pub fn render_loop(command_list: &[DisplayCommand]) {
     ).unwrap();
 
     let (vertices, index_data) = render_commands(command_list);
+    let texts = render_texts(command_list);
 
     let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&vertices, &index_data[..]);
 
@@ -59,6 +69,9 @@ pub fn render_loop(command_list: &[DisplayCommand]) {
         vbuf: vertex_buffer,
         out: main_color,
     };
+
+    // Initialize text renderer.
+    let mut textRenderer = gfx_text::new(factory).build().unwrap();
 
     'main: loop {
         for event in window.poll_events() {
@@ -69,12 +82,27 @@ pub fn render_loop(command_list: &[DisplayCommand]) {
             }
         }
 
+        for text in &texts {
+            textRenderer.add(
+                text.text,
+                text.position,
+                text.color,
+            );
+        }
+
         encoder.clear(&data.out, CLEAR_COLOR);
+        
         encoder.draw(&slice, &pso, &data);
+        textRenderer.draw(&mut encoder, &data.out);
+        
         encoder.flush(&mut device);
         window.swap_buffers().unwrap();
         device.cleanup();
     }
+}
+
+fn render_texts(command_list: &[DisplayCommand]) -> Vec<RenderText> {
+    Vec::new()
 }
 
 fn render_commands(command_list: &[DisplayCommand]) -> (Vec<Vertex>, Vec<u16>) {
@@ -100,7 +128,6 @@ fn render_commands(command_list: &[DisplayCommand]) -> (Vec<Vertex>, Vec<u16>) {
 }
 
 fn render_rect(c: &[f32; 3], rect: &layout::Rect) -> Vec<Vertex> {
-    println!("{:?}", rect);
     let (x, y, h, w) = transform_rect(rect);
     let vertices = vec![
         Vertex { pos: [x + w, y], color: *c },
@@ -126,8 +153,6 @@ fn transform_rect(rect: &layout::Rect) -> (f32, f32, f32, f32) {
     let h = rect.height / SCREEN_HEIGHT as f32 * 2.0;
     let x = rect.x / SCREEN_WIDTH as f32 * 2.0 - 1.0;
     let y = -(rect.y / SCREEN_HEIGHT as f32 * 2.0 - 1.0 + h);
-
-    println!("x: {}, y: {}, w: {}, h: {}", x, y, w, h);
 
     (x, y, h, w)
 }

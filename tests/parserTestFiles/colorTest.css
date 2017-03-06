@@ -1,11 +1,11 @@
-.blk {
-    display: inline-block;
-    margin-right: 1px;
-    margin-bottom: 1px;
-    margin-left: 1px;
-    margin-top: 1px;
-    height: 35px;
-    width: 10%;
+.inline-block {
+  display: inline-block;
+  margin-right: 1px;
+  margin-bottom: 1px;
+  margin-left: 1px;
+  margin-top: 1px;
+  height: 35px;
+  width: 10%;
 }
 
 .black {

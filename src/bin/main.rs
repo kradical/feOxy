@@ -34,7 +34,7 @@ fn main() {
 
 fn test_html() -> Vec<dom::Node> {
     let mut path = env::current_dir().unwrap();
-    path.push("tests/parserTestFiles/colorTest.html");
+    path.push("tests/parserTestFiles/blockTypeTest.html");
 
     let mut file_reader = match File::open(&path) {
         Ok(f) => BufReader::new(f),
@@ -51,7 +51,7 @@ fn test_html() -> Vec<dom::Node> {
 
 fn test_css() -> css::Stylesheet {
     let mut path = env::current_dir().unwrap();
-    path.push("tests/parserTestFiles/colorTest.css");
+    path.push("tests/parserTestFiles/blockTypeTest.css");
 
     let mut file_reader = match File::open(&path) {
         Ok(f) => BufReader::new(f),

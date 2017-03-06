@@ -182,7 +182,7 @@ pub fn pretty_print(n: &StyledNode, indent_size: usize) {
     }
 }
 
-//TODO
+//  TODO
 //  -make things case insensitive.
 //  -parse element attributes into styles
 //  -parse <style> elements into style sheets
