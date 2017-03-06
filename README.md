@@ -1,8 +1,12 @@
 # feOxy
 A bare bones web browser.
 
+Currently only a rendering engine.
+
 [![rust](http://img.shields.io/badge/language-rust-red.svg)](https://www.rust-lang.org/en-US/)
 [![gfx](http://img.shields.io/badge/lib-gfx-red.svg)](https://github.com/gfx-rs/gfx)
+[![gfx_text](http://img.shields.io/badge/lib-gfx_text-red.svg)](https://github.com/PistonDevelopers/gfx_text)
+[![glutin](http://img.shields.io/badge/lib-glutin-red.svg)](https://github.com/tomaka/glutin)
 
 Not meant to be feature complete, more of a learning tool/exercise.
 
