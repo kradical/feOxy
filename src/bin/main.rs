@@ -1,5 +1,5 @@
-extern crate fe_oxy;
-use fe_oxy::{command, css, css_parse, dom, html_parse, layout, render, style};
+extern crate feOxy;
+use feOxy::{command, css, css_parse, dom, html_parse, layout, render, style};
 
 use std::env;
 use std::fs::File;
