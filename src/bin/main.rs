@@ -1,5 +1,5 @@
-extern crate feOxy;
-use feOxy::{command, css, css_parse, dom, html_parse, layout, render, style};
+extern crate iron_oxide_browser;
+use iron_oxide_browser::{command, css, css_parse, dom, html_parse, layout, render, style};
 
 use std::env;
 use std::fs::File;
